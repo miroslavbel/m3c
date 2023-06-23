@@ -12,17 +12,12 @@
 typedef struct tagM3C_ASM_SourceBuffer {
     /**
      * \brief A pointer to the first byte of the buffer.
-     *
-     * \warning If the buffer length is `0`, then it can point anywhere. The buffer length is
-     * considered to be zero if the #last field is less than this field.
-     * \warning The buffer length must be less than `2 ** 32 - 1`.
      */
     const m3c_u8 *first;
     /**
      * \brief A pointer to the last byte in the buffer.
      *
-     * \warning If the buffer length is `0`, then it can point anywhere. The buffer length is
-     * considered to be zero if this field is less than the #first field.
+     * \warning If the buffer length is `0`, then it must be `NULL`.
      * \warning The buffer length must be less than `2 ** 32 - 1`.
      */
     const m3c_u8 *last;
