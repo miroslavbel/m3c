@@ -108,7 +108,7 @@ __M3C_ASM_handle_EOF(M3C_ASM_Tokenizer *tokenizer, const M3C_ASM_TokenizerOption
  * "invalid" and parses that token until the end of the token (or the end of \ref
  * #M3C_ASM_Tokenizer.src "token.src").
  *
- * \details Assumes \ref #M3C_ASM_Tokenizer.ptr "token.ptr" to be set to the first byte of
+ * \details Assumes \ref #M3C_ASM_Tokenizer.ptr "token.ptr" to be set to the first invalid byte of
  * the given \a token. If successful, sets a pointer to the next byte after the parsed token (which
  * may be outside the \ref #M3C_ASM_Tokenizer.src "token.src" boundary).
  *
@@ -156,15 +156,80 @@ M3C_ASM_Error __M3C_ASM_parse_invalid_token(
 
                 /* push `\n` token */
                 __M3C_ASM_AdvanceNL;
-                M3C_IfRet(res, __M3C_ASM_push_token(tokenizer, options, token));
-
-                return M3C_ASM_ERROR_OK;
+                return __M3C_ASM_push_token(tokenizer, options, token);
 
             } else if (__M3C_ASM_does_match(__M3C_ASM_END_OF_TOKEN, __M3C_ASM_END_OF_TOKEN_N, ch))
                 return __M3C_ASM_push_token(tokenizer, options, token);
         }
 
         __M3C_ASM_Advance;
+    }
+}
+
+/**
+ * \brief Parses a string literal.
+ *
+ * \details Assumes \ref #M3C_ASM_Tokenizer.ptr "token.ptr" to be set to the first byte after `"`.
+ * If successful, sets a pointer to the next byte after the parsed token (which may be outside the
+ * \ref #M3C_ASM_Tokenizer.src "token.src" boundary).
+ *
+ * \param[in,out] tokenizer tokenizer
+ * \param[in]     options   options
+ * \param[in,out] token     token
+ * \return
+ * - #M3C_ASM_ERROR_OK - if okay
+ * - #M3C_ASM_ERROR_OOM - if failed to push token
+ * - UTF-8 specific errors (see #M3C_UTF8BufferValidate):
+ *   + #M3C_ASM_ERROR_UTF8_UNEXPECTED_EOF
+ *   + #M3C_ASM_ERROR_UTF8_ILLEGAL_START_BYTE
+ *   + #M3C_ASM_ERROR_UTF8_ILLEGAL_CONTINUATION_BYTE
+ *   + #M3C_ASM_ERROR_UTF8_OVERLONG_ENCODING
+ *   + #M3C_ASM_ERROR_UTF8_CODEPOINT_TOO_BIG
+ */
+M3C_ASM_Error __M3C_ASM_parse_string_literal(
+    M3C_ASM_Tokenizer *tokenizer, const M3C_ASM_TokenizerOptions *options, M3C_ASM_Token *token
+) {
+    M3C_ASM_Error res;
+    m3c_u8 ch;
+
+    M3C_LOOP {
+        if (__M3C_ASM_IsEof) {
+            /* TODO: diagnostics "unterminated string" */
+            return __M3C_ASM_push_token(tokenizer, options, token);
+        }
+        ch = *tokenizer->ptr;
+
+        if (ch >= 0x80) {
+            /* TODO: diagnostics "string can only contain ASCII digits and letters" */
+            return __M3C_ASM_parse_invalid_token(tokenizer, options, token);
+        }
+
+        if (ch == '\n') {
+            /* TODO: diagnostics "unterminated string" */
+
+            /* push string token */
+            token->len = (m3c_u32)(tokenizer->ptr - token->ptr);
+            M3C_IfRet(res, __M3C_ASM_push_token(tokenizer, options, token));
+
+            /* set `\n` token itself */
+            token->kind = M3C_ASM_NL_TOKEN;
+            token->ptr = tokenizer->ptr;
+            token->pos = tokenizer->pos;
+            token->file = tokenizer->name;
+
+            /* push `\n` token */
+            __M3C_ASM_AdvanceNL;
+            return __M3C_ASM_push_token(tokenizer, options, token);
+        } else if (ch == '"') {
+            __M3C_ASM_Advance;
+            return __M3C_ASM_push_token(tokenizer, options, token);
+        } else if (__M3C_ASM_does_match(__M3C_ASM_STRING_BODY, __M3C_ASM_STRING_BODY_N, ch)) {
+            __M3C_ASM_Advance;
+            continue;
+        } else {
+            /* TODO: diagnostics "string can only contain ASCII digits and letters" */
+            return __M3C_ASM_parse_invalid_token(tokenizer, options, token);
+        }
     }
 }
 
@@ -219,6 +284,11 @@ __M3C_ASM_parse_next_token(M3C_ASM_Tokenizer *tokenizer, const M3C_ASM_Tokenizer
 
             __M3C_ASM_AdvanceNL;
             return res;
+
+        case '"':
+            token.kind = M3C_ASM_STRING_LITERAL_TOKEN;
+            __M3C_ASM_Advance;
+            return __M3C_ASM_parse_string_literal(tokenizer, options, &token);
 
         /* TODO: impl another tokens*/
         default:

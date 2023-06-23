@@ -53,6 +53,16 @@ typedef enum tagM3C_ASM_Token_Kind {
     M3C_ASM_INVDALID_TOKEN = 0,
 
     /**
+     * \brief String literal.
+     *
+     * \details General RegEx: `"[0-9A-Za-z]*"?`.
+     *
+     * \warning The end of the token can also be `\n` or `EOF`. In this case, the token does not
+     * contain the closing `"` and the diagnostic will be triggered.
+     */
+    M3C_ASM_STRING_LITERAL_TOKEN = 2,
+
+    /**
      * \brief Represents a new line.
      *
      * \note Tokens of this kind have \ref M3C_ASM_Token::len "len" equal to `1`.
