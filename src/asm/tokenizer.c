@@ -156,9 +156,7 @@ M3C_ASM_Error __M3C_ASM_parse_invalid_token(
 
                 /* push `\n` token */
                 __M3C_ASM_AdvanceNL;
-                M3C_IfRet(res, __M3C_ASM_push_token(tokenizer, options, token));
-
-                return M3C_ASM_ERROR_OK;
+                return __M3C_ASM_push_token(tokenizer, options, token);
 
             } else if (__M3C_ASM_does_match(__M3C_ASM_END_OF_TOKEN, __M3C_ASM_END_OF_TOKEN_N, ch))
                 return __M3C_ASM_push_token(tokenizer, options, token);
