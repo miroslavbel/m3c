@@ -161,6 +161,12 @@ typedef struct tagM3C_ASM_TokenizerOptions {
  * \brief Breaks the source code into tokens and pushes them into \ref M3C_ASM_Tokenizer::tokens
  * "tokens".
  *
+ * \warning The current implementation assumes that \ref M3C_ASM_Tokenizer::src "src" contains a
+ * byte array object, which means that the addition operation, which results in a pointer that
+ * points to the element immediately after this array, did not lead to an overflow. For example, see
+ * N1570 $6.5.6 "Additive operators" clause 8. However, С89 just states that such expression does
+ * not lead to undefined behavior.
+ *
  * \param[in,out] tokenizer tokenizer
  * \param[in]     options   options
  * \return
