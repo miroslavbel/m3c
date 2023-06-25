@@ -111,11 +111,11 @@ __M3C_ASM_handle_EOF(M3C_ASM_Tokenizer *tokenizer, const M3C_ASM_TokenizerOption
 /**
  * \brief Sets the type of the given \a token to \ref #M3C_ASM_Token_Kind.M3C_ASM_INVDALID_TOKEN
  * "invalid" and parses that token until the end of the token (or the end of \ref
- * #M3C_ASM_Tokenizer.src "token.src").
+ * #M3C_ASM_Tokenizer.src "tokenizer.src").
  *
- * \details Assumes \ref #M3C_ASM_Tokenizer.ptr "token.ptr" to be set to the first invalid byte of
- * the given \a token. If successful, sets a pointer to the next byte after the parsed token (which
- * may be outside the \ref #M3C_ASM_Tokenizer.src "token.src" boundary).
+ * \details Assumes \ref #M3C_ASM_Tokenizer.ptr "tokenizer.ptr" to be set to the first invalid byte
+ * of the given \a token. If successful, sets a pointer to the next byte after the parsed token
+ * (which may be outside the \ref #M3C_ASM_Tokenizer.src "tokenizer.src" boundary).
  *
  * \param[in,out] tokenizer tokenizer
  * \param[in]     options   options
@@ -137,12 +137,7 @@ M3C_ASM_Error __M3C_ASM_parse_invalid_token(
     m3c_u8 ch;
     token->kind = M3C_ASM_INVDALID_TOKEN;
 
-    /* we already know that this (first) char is invalid (and not \n) */
-    __M3C_ASM_Advance;
-
     M3C_LOOP {
-        if (__M3C_ASM_IsEof)
-            return __M3C_ASM_push_token(tokenizer, options, token);
         ch = *tokenizer->ptr;
 
         if (ch >= 0x80) {
@@ -168,15 +163,165 @@ M3C_ASM_Error __M3C_ASM_parse_invalid_token(
         }
 
         __M3C_ASM_Advance;
+        if (__M3C_ASM_IsEof)
+            return __M3C_ASM_push_token(tokenizer, options, token);
     }
+}
+
+/**
+ * \brief Parses noninitial digits in the number body. The number of noninitial digits can be 0 or
+ * more.
+ *
+ * \param[in,out] tokenizer tokenizer
+ * \param[in]     options   options
+ * \param[in,out] token     token
+ * \param n                 the length of #__M3C_ASM_NUMBER_BODY
+ * \return
+ * - #M3C_ASM_ERROR_OK - if okay
+ * - #M3C_ASM_ERROR_OOM - if failed to push token
+ * - UTF-8 specific errors (see #M3C_UTF8BufferValidate):
+ *   + #M3C_ASM_ERROR_UTF8_UNEXPECTED_EOF
+ *   + #M3C_ASM_ERROR_UTF8_ILLEGAL_START_BYTE
+ *   + #M3C_ASM_ERROR_UTF8_ILLEGAL_CONTINUATION_BYTE
+ *   + #M3C_ASM_ERROR_UTF8_OVERLONG_ENCODING
+ *   + #M3C_ASM_ERROR_UTF8_CODEPOINT_TOO_BIG
+ */
+M3C_ASM_Error __M3C_ASM_parse_noninitial_digits(
+    M3C_ASM_Tokenizer *tokenizer, const M3C_ASM_TokenizerOptions *options, M3C_ASM_Token *token,
+    m3c_u32 n
+) {
+    m3c_u8 ch;
+
+    M3C_LOOP {
+        if (__M3C_ASM_IsEof)
+            return __M3C_ASM_push_token(tokenizer, options, token);
+        ch = *tokenizer->ptr;
+
+        if (__M3C_ASM_does_match(__M3C_ASM_NUMBER_BODY, n, ch)) {
+            __M3C_ASM_Advance;
+            continue;
+        }
+
+        if (__M3C_ASM_does_match(__M3C_ASM_END_OF_TOKEN, __M3C_ASM_END_OF_TOKEN_N, ch))
+            return __M3C_ASM_push_token(tokenizer, options, token);
+        else
+            /* TODO: diagnostics "invalid digit for this type of number literal" */
+            return __M3C_ASM_parse_invalid_token(tokenizer, options, token);
+    }
+}
+
+/**
+ * \brief Parse the body of a numeric literal (after the prefix).
+ *
+ * \details Assumes that \ref #M3C_ASM_Tokenizer.ptr "tokenizer.ptr" points to the next byte after
+ * the prefix.
+ *
+ * \param[in,out] tokenizer tokenizer
+ * \param[in]     options   options
+ * \param[in,out] token     token
+ * \param n                 the length of #__M3C_ASM_NUMBER_BODY
+ * \return
+ * - #M3C_ASM_ERROR_OK - if okay
+ * - #M3C_ASM_ERROR_OOM - if failed to push token
+ * - UTF-8 specific errors (see #M3C_UTF8BufferValidate):
+ *   + #M3C_ASM_ERROR_UTF8_UNEXPECTED_EOF
+ *   + #M3C_ASM_ERROR_UTF8_ILLEGAL_START_BYTE
+ *   + #M3C_ASM_ERROR_UTF8_ILLEGAL_CONTINUATION_BYTE
+ *   + #M3C_ASM_ERROR_UTF8_OVERLONG_ENCODING
+ *   + #M3C_ASM_ERROR_UTF8_CODEPOINT_TOO_BIG
+ */
+M3C_ASM_Error __M3C_ASM_parse_number_body(
+    M3C_ASM_Tokenizer *tokenizer, const M3C_ASM_TokenizerOptions *options, M3C_ASM_Token *token,
+    m3c_u32 n
+) {
+    m3c_u8 ch;
+
+    if (__M3C_ASM_IsEof) {
+        /* TODO: diagnostics "number must contain at least one digit" */
+        token->kind = M3C_ASM_INVDALID_TOKEN;
+        return __M3C_ASM_push_token(tokenizer, options, token);
+    }
+
+    /* skip possible underscore after prefix */
+    M3C_LOOP {
+        ch = *tokenizer->ptr;
+        if (ch != '_')
+            break;
+
+        __M3C_ASM_Advance;
+        if (__M3C_ASM_IsEof) {
+            token->kind = M3C_ASM_INVDALID_TOKEN;
+            return __M3C_ASM_push_token(tokenizer, options, token);
+        }
+    }
+
+    /* first digit */
+    if (!__M3C_ASM_does_match(__M3C_ASM_DIGIT, n - 1, ch))
+        /* TODO: diagnostics "number must contain at least one digit" */
+        return __M3C_ASM_parse_invalid_token(tokenizer, options, token);
+    __M3C_ASM_Advance;
+
+    /* any noninitial digits */
+    return __M3C_ASM_parse_noninitial_digits(tokenizer, options, token, n);
+}
+
+/**
+ * \brief Parses a number literal after the first char of `0`.
+ *
+ * \details Assumes that \ref #M3C_ASM_Tokenizer.ptr "tokenizer.ptr" points to the next byte after
+ * zero. Leading zero is prohibited. The prefix can be `0b`, `0o`, `0d`, `0x`.
+ *
+ * \param[in,out] tokenizer tokenizer
+ * \param[in]     options   options
+ * \param[in,out] token     token
+ * \return
+ * - #M3C_ASM_ERROR_OK - if okay
+ * - #M3C_ASM_ERROR_OOM - if failed to push token
+ * - UTF-8 specific errors (see #M3C_UTF8BufferValidate):
+ *   + #M3C_ASM_ERROR_UTF8_UNEXPECTED_EOF
+ *   + #M3C_ASM_ERROR_UTF8_ILLEGAL_START_BYTE
+ *   + #M3C_ASM_ERROR_UTF8_ILLEGAL_CONTINUATION_BYTE
+ *   + #M3C_ASM_ERROR_UTF8_OVERLONG_ENCODING
+ *   + #M3C_ASM_ERROR_UTF8_CODEPOINT_TOO_BIG
+ */
+M3C_ASM_Error __M3C_ASM_parse_number_literal(
+    M3C_ASM_Tokenizer *tokenizer, const M3C_ASM_TokenizerOptions *options, M3C_ASM_Token *token
+) {
+    m3c_u8 ch;
+
+    if (__M3C_ASM_IsEof)
+        return __M3C_ASM_push_token(tokenizer, options, token);
+    ch = *tokenizer->ptr;
+
+    if (ch == 'b') {
+        __M3C_ASM_Advance;
+        return __M3C_ASM_parse_number_body(tokenizer, options, token, __M3C_ASM_BIN_NUMBER_BODY_N);
+    } else if (ch == 'o') {
+        __M3C_ASM_Advance;
+        return __M3C_ASM_parse_number_body(tokenizer, options, token, __M3C_ASM_OCT_NUMBER_BODY_N);
+    } else if (ch == 'd') {
+        __M3C_ASM_Advance;
+        return __M3C_ASM_parse_number_body(tokenizer, options, token, __M3C_ASM_DEC_NUMBER_BODY_N);
+    } else if (ch == 'x') {
+        __M3C_ASM_Advance;
+        return __M3C_ASM_parse_number_body(tokenizer, options, token, __M3C_ASM_HEX_NUMBER_BODY_N);
+    } else if (__M3C_ASM_does_match(__M3C_ASM_NUMBER_BODY, __M3C_ASM_HEX_NUMBER_BODY_N, ch)) {
+        /* TODO: diagnostics "leading zeros in number literals are not permitted" */
+        return __M3C_ASM_parse_invalid_token(tokenizer, options, token);
+    } else if (__M3C_ASM_does_match(__M3C_ASM_END_OF_TOKEN, __M3C_ASM_END_OF_TOKEN_N, ch)) {
+        return __M3C_ASM_push_token(tokenizer, options, token);
+    }
+
+    /* TODO: diagnostics "invalid number prefix" */
+    return __M3C_ASM_parse_invalid_token(tokenizer, options, token);
 }
 
 /**
  * \brief Parses a string literal.
  *
- * \details Assumes \ref #M3C_ASM_Tokenizer.ptr "token.ptr" to be set to the first byte after `"`.
- * If successful, sets a pointer to the next byte after the parsed token (which may be outside the
- * \ref #M3C_ASM_Tokenizer.src "token.src" boundary).
+ * \details Assumes \ref #M3C_ASM_Tokenizer.ptr "tokenizer.ptr" to be set to the first byte after
+ * `"`. If successful, sets a pointer to the next byte after the parsed token (which may be outside
+ * the \ref #M3C_ASM_Tokenizer.src "tokenizer.src" boundary).
  *
  * \param[in,out] tokenizer tokenizer
  * \param[in]     options   options
@@ -281,24 +426,28 @@ __M3C_ASM_parse_next_token(M3C_ASM_Tokenizer *tokenizer, const M3C_ASM_Tokenizer
     if (ch >= 0x80)
         return __M3C_ASM_parse_invalid_token(tokenizer, options, &token);
 
-    switch (ch) {
-        case '\n':
-            token.kind = M3C_ASM_NL_TOKEN;
+    if (ch == '\n') {
+        token.kind = M3C_ASM_NL_TOKEN;
 
-            M3C_IfRet(res, __M3C_ASM_push_token(tokenizer, options, &token));
-
-            __M3C_ASM_AdvanceNL;
-            return res;
-
-        case '"':
-            token.kind = M3C_ASM_STRING_LITERAL_TOKEN;
-            __M3C_ASM_Advance;
-            return __M3C_ASM_parse_string_literal(tokenizer, options, &token);
-
-        /* TODO: impl another tokens*/
-        default:
-            /* TODO: diagnostics "invalid token at " */
-            return __M3C_ASM_parse_invalid_token(tokenizer, options, &token);
+        __M3C_ASM_AdvanceNL;
+        return __M3C_ASM_push_token(tokenizer, options, &token);
+    } else if (ch == '"') {
+        token.kind = M3C_ASM_STRING_LITERAL_TOKEN;
+        __M3C_ASM_Advance;
+        return __M3C_ASM_parse_string_literal(tokenizer, options, &token);
+    } else if (ch == '0') {
+        token.kind = M3C_ASM_NUMBER_LITERAL_TOKEN;
+        __M3C_ASM_Advance;
+        return __M3C_ASM_parse_number_literal(tokenizer, options, &token);
+    } else if ('0' <= ch && ch <= '9') {
+        token.kind = M3C_ASM_NUMBER_LITERAL_TOKEN;
+        __M3C_ASM_Advance;
+        return __M3C_ASM_parse_noninitial_digits(
+            tokenizer, options, &token, __M3C_ASM_DEC_NUMBER_BODY_N
+        );
+    } else { /* TODO: impl another tokens */
+        /* TODO: diagnostics "invalid token at " */
+        return __M3C_ASM_parse_invalid_token(tokenizer, options, &token);
     }
 }
 
