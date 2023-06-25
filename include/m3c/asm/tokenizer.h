@@ -144,11 +144,13 @@ typedef struct tagM3C_ASM_TokenizerOptions {
      * "vector of tokens" if it runs out of space.
      *
      * \details If it returns a pointer to zero, parsing will fail with an #M3C_ASM_ERROR_OOM error.
-     * If set as a `NULL`, no call is made and #M3C_ASM_ERROR_OOM will return immediately.
+     * If set as a `NULL`, no call is made and #M3C_ASM_ERROR_OOM will return immediately after the
+     * \ref M3C_ASM_Tokenizer::tokens "vector of tokens" runs out of space.
      *
      * \note Requests twice as much memory as before. However, the maximum requested memory size is
      * for the number of tokens equal to the length of the source code (one character - one token)
-     * `+ 1`.
+     * plus one for #M3C_ASM_EOF_TOKEN. In fact it always requests for `newCap+1` to match the
+     * `P+N+1` rule.
      *
      * \warning Can be `NULL`.
      */
