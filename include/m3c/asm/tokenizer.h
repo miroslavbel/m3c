@@ -48,6 +48,24 @@ typedef enum tagM3C_ASM_Token_Kind {
     M3C_ASM_INVDALID_TOKEN = 0,
 
     /**
+     * \brief Number literal.
+     *
+     * \details Number literals can represent binary, octal, decimal, and hexadecimal integers. The
+     * number itself can be preceded by a prefix. All number literals, except for literals
+     * representing decimal numbers, must contain a prefix. The number itself must contain at least
+     * one digit. `_` is allowed as a digit separator.
+     *
+     * Prefixes:
+     * + `0b` for binary
+     * + `0o` for octal
+     * + `0d` for decimal (optional)
+     * + `0x` for hexadecimal
+     *
+     * General RegEx: `(?>0[bodh])[0-9A-Fa-f_]*`.
+     */
+    M3C_ASM_NUMBER_LITERAL_TOKEN = 1,
+
+    /**
      * \brief String literal.
      *
      * \details General RegEx: `"[0-9A-Za-z]*"?`.
