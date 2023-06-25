@@ -67,7 +67,7 @@ m3c_bool __M3C_ASM_does_match(const m3c_u8 ranges[][2], m3c_u32 n, m3c_u8 ch) {
 M3C_ASM_Error __M3C_ASM_push_token(
     M3C_ASM_Tokenizer *tokenizer, const M3C_ASM_TokenizerOptions *options, M3C_ASM_Token *token
 ) {
-    m3c_u32 newCap;
+    m3c_u32 newCapPlusOne;
     void *newPtr;
     token->len = (m3c_u32)(tokenizer->ptr - token->ptr);
 
@@ -76,16 +76,21 @@ M3C_ASM_Error __M3C_ASM_push_token(
             return M3C_ASM_ERROR_OOM;
 
         /* There is no reason to ask for more than the number of characters in src + 1. */
-        newCap = m3c_min(
-            m3c_max(1, (m3c_u32)(tokenizer->src.last - tokenizer->src.first)),
-            tokenizer->tokens->cap + tokenizer->tokens->cap
+        newCapPlusOne = m3c_min(
+            m3c_max(
+                2 /* M3C_ASM_EOF_TOKEN and `P+N+1` rule */,
+                (m3c_u32)(tokenizer->src.last - tokenizer->src.first) +
+                    2 /* M3C_ASM_EOF_TOKEN and `P+N+1` rule */
+            ),
+            tokenizer->tokens->cap + tokenizer->tokens->cap + 1 /* `P+N+1` rule */
         );
-        newPtr = options->tokens_realloc(tokenizer->tokens->data, sizeof(M3C_ASM_Token) * newCap);
+        newPtr =
+            options->tokens_realloc(tokenizer->tokens->data, sizeof(M3C_ASM_Token) * newCapPlusOne);
         if (!newPtr)
             return M3C_ASM_ERROR_OOM;
 
         tokenizer->tokens->data = newPtr;
-        tokenizer->tokens->cap = newCap;
+        tokenizer->tokens->cap = newCapPlusOne - 1;
     }
 
     tokenizer->tokens->data[tokenizer->tokens->len++] = *token;

@@ -12,17 +12,12 @@
 typedef struct tagM3C_ASM_SourceBuffer {
     /**
      * \brief A pointer to the first byte of the buffer.
-     *
-     * \warning If the buffer length is `0`, then it can point anywhere. The buffer length is
-     * considered to be zero if the #last field is less than this field.
-     * \warning The buffer length must be less than `2 ** 32 - 1`.
      */
     const m3c_u8 *first;
     /**
      * \brief A pointer to the last byte in the buffer.
      *
-     * \warning If the buffer length is `0`, then it can point anywhere. The buffer length is
-     * considered to be zero if this field is less than the #first field.
+     * \warning If the buffer length is `0`, then it must be `NULL`.
      * \warning The buffer length must be less than `2 ** 32 - 1`.
      */
     const m3c_u8 *last;
@@ -149,11 +144,13 @@ typedef struct tagM3C_ASM_TokenizerOptions {
      * "vector of tokens" if it runs out of space.
      *
      * \details If it returns a pointer to zero, parsing will fail with an #M3C_ASM_ERROR_OOM error.
-     * If set as a `NULL`, no call is made and #M3C_ASM_ERROR_OOM will return immediately.
+     * If set as a `NULL`, no call is made and #M3C_ASM_ERROR_OOM will return immediately after the
+     * \ref M3C_ASM_Tokenizer::tokens "vector of tokens" runs out of space.
      *
      * \note Requests twice as much memory as before. However, the maximum requested memory size is
      * for the number of tokens equal to the length of the source code (one character - one token)
-     * `+ 1`.
+     * plus one for #M3C_ASM_EOF_TOKEN. In fact it always requests for `newCap+1` to match the
+     * `P+N+1` rule.
      *
      * \warning Can be `NULL`.
      */
@@ -165,6 +162,12 @@ typedef struct tagM3C_ASM_TokenizerOptions {
 /**
  * \brief Breaks the source code into tokens and pushes them into \ref M3C_ASM_Tokenizer::tokens
  * "tokens".
+ *
+ * \warning The current implementation assumes that \ref M3C_ASM_Tokenizer::src "src" contains a
+ * byte array object, which means that the addition operation, which results in a pointer that
+ * points to the element immediately after this array, did not lead to an overflow. For example, see
+ * N1570 $6.5.6 "Additive operators" clause 8. However, С89 just states that such expression does
+ * not lead to undefined behavior.
  *
  * \param[in,out] tokenizer tokenizer
  * \param[in]     options   options
