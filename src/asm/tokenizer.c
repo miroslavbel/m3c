@@ -111,11 +111,11 @@ __M3C_ASM_handle_EOF(M3C_ASM_Tokenizer *tokenizer, const M3C_ASM_TokenizerOption
 /**
  * \brief Sets the type of the given \a token to \ref #M3C_ASM_Token_Kind.M3C_ASM_INVDALID_TOKEN
  * "invalid" and parses that token until the end of the token (or the end of \ref
- * #M3C_ASM_Tokenizer.src "token.src").
+ * #M3C_ASM_Tokenizer.src "tokenizer.src").
  *
- * \details Assumes \ref #M3C_ASM_Tokenizer.ptr "token.ptr" to be set to the first invalid byte of
- * the given \a token. If successful, sets a pointer to the next byte after the parsed token (which
- * may be outside the \ref #M3C_ASM_Tokenizer.src "token.src" boundary).
+ * \details Assumes \ref #M3C_ASM_Tokenizer.ptr "tokenizer.ptr" to be set to the first invalid byte
+ * of the given \a token. If successful, sets a pointer to the next byte after the parsed token
+ * (which may be outside the \ref #M3C_ASM_Tokenizer.src "tokenizer.src" boundary).
  *
  * \param[in,out] tokenizer tokenizer
  * \param[in]     options   options
@@ -319,9 +319,9 @@ M3C_ASM_Error __M3C_ASM_parse_number_literal(
 /**
  * \brief Parses a string literal.
  *
- * \details Assumes \ref #M3C_ASM_Tokenizer.ptr "token.ptr" to be set to the first byte after `"`.
- * If successful, sets a pointer to the next byte after the parsed token (which may be outside the
- * \ref #M3C_ASM_Tokenizer.src "token.src" boundary).
+ * \details Assumes \ref #M3C_ASM_Tokenizer.ptr "tokenizer.ptr" to be set to the first byte after
+ * `"`. If successful, sets a pointer to the next byte after the parsed token (which may be outside
+ * the \ref #M3C_ASM_Tokenizer.src "tokenizer.src" boundary).
  *
  * \param[in,out] tokenizer tokenizer
  * \param[in]     options   options
