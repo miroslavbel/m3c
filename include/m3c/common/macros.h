@@ -6,6 +6,11 @@
 #define m3c_min(x, y) ((x) < (y)) ? (x) : (y)
 #define m3c_max(x, y) ((x) > (y)) ? (x) : (y)
 
+/**
+ * \brief Checks that `x` is in the range `[min..max]` (both inclusive).
+ */
+#define M3C_InRange(x, min, max) ((min) <= (x) && (x) <= (max))
+
 #define M3C_LOOP while (m3c_true)
 
 #define M3C_IfRet(res, call)                                                                       \
