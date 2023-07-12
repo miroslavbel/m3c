@@ -4,6 +4,23 @@
 #include <m3c/common/types.h>
 
 /**
+ * \brief UTF-8 code unit.
+ */
+typedef m3c_u8 M3C_UTF8cu;
+
+/**
+ * \brief Pointer to the UTF-8 buffer.
+ *
+ * \warning Can be not null-terminated.
+ */
+typedef M3C_UTF8cu *M3C_UTF8;
+
+/**
+ * \brief Pointer to the UTF-8 null-terminated string.
+ */
+typedef M3C_UTF8cu *M3C_UTF8Z;
+
+/**
  * \see #M3C_UTF8ValidateChar
  */
 #define M3C_UTF8_OK 0
