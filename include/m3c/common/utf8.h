@@ -4,11 +4,40 @@
 #include <m3c/common/types.h>
 
 /**
- * \see #M3C_UTF8ValidateChar
+ * \brief UTF-8 code unit.
+ */
+typedef m3c_u8 M3C_UTF8cu;
+
+/**
+ * \brief Pointer to the UTF-8 buffer.
+ *
+ * \warning Can be not null-terminated.
+ */
+#define M3C_UTF8 M3C_UTF8cu *
+
+/**
+ * \brief Pointer to the UTF-8 null-terminated string.
+ */
+#define M3C_UTF8Z M3C_UTF8cu *
+
+/**
+ * \brief Replacement character (`�`) as a string literal.
+ */
+#define M3C_UTF8_REPLACEMENT_CHARACTER_STR "\xEF\xBF\xBD"
+
+/**
+ * \brief Length of replacement character (`�`) in UTF-8 encoding in bytes.
+ *
+ * \see #M3C_UTF8_REPLACEMENT_CHARACTER_STR
+ */
+#define M3C_UTF8_REPLACEMENT_CHARACTER_BLEN 3
+
+/**
+ * \see #M3C_UTF8ValidateCodepoint
  */
 #define M3C_UTF8_OK 0
 /**
- * \see #M3C_UTF8ValidateChar
+ * \see #M3C_UTF8ValidateCodepoint
  */
 #define M3C_UTF8_ERR 1
 

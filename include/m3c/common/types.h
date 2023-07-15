@@ -52,6 +52,15 @@ typedef size_t m3c_size_t;
 #    endif
 #endif
 
+#ifndef m3c_ptrdiff_t
+#    ifndef FORBIT_USE_OF_STDTYPES
+#        include <stddef.h>
+typedef ptrdiff_t m3c_ptrdiff_t;
+#    else
+#        error "m3c_ptrdiff_t is not defined and FORBIT_TO_USE_STDTYPES is defined"
+#    endif
+#endif
+
 #ifndef m3c_bool
 #    if __STDC_VERSION__ >= 199901L && !defined(FORBIT_USE_OF_STDTYPES)
 #        include <stdbool.h>
@@ -76,6 +85,15 @@ typedef int m3c_bool;
 #        define m3c_true true
 #    else
 #        define m3c_true 1
+#    endif
+#endif
+
+#ifndef M3C_NULL
+#    ifndef FORBIT_USE_OF_STDTYPES
+#        include <stddef.h>
+#        define M3C_NULL NULL
+#    else
+#        define M3C_NULL ((void *)0)
 #    endif
 #endif
 
