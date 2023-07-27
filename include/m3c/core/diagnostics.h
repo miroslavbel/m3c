@@ -1,6 +1,7 @@
 #ifndef _M3C_INCGUARD_CORE_DIAGNOSTICS_H
 #define _M3C_INCGUARD_CORE_DIAGNOSTICS_H
 
+#include <m3c/core/fmt.h>
 #include <m3c/asm/diagnostics.h>
 
 /**
@@ -9,19 +10,31 @@
 typedef enum __tagM3C_DiagnosticsDomain {
     /**
      * \brief For diagnostics related to assembling assembly into native format.
+     *
+     * \see M3C_ASM_DiagnosticId.
      */
-    M3C_DiagnosticsDomain_ASM = 1
+    M3C_DIAGNOSTIC_DOMAIN_ASM = 1
 } M3C_DiagnosticsDomain;
 
 /**
  * \brief Diagnostics severity.
  */
 typedef enum __tagM3C_Severity {
-    M3C_Severity_NOTE = 0,
-    M3C_Severity_WARNING = 1,
-    M3C_Severity_ERROR = 2,
-    M3C_Severity_FATAL_ERROR = 3
+    M3C_SEVERITY_NOTE = 0,
+    M3C_SEVERITY_WARNING = 1,
+    M3C_SEVERITY_ERROR = 2,
+    M3C_SEVERITY_FATAL_ERROR = 3
 } M3C_Severity;
+
+/**
+ * \brief Union of the diagnostic Ids of all domains.
+ */
+typedef union __tagM3C_DiagnosticsId {
+    /**
+     * \brief Ids of \ref M3C_DIAGNOSTIC_DOMAIN_ASM "ASM" diagnostics.
+     */
+    M3C_ASM_DiagnosticId ASM;
+} M3C_DiagnosticsId;
 
 /**
  * \brief Represents common immutable data for all diagnostics with the same \ref
@@ -36,11 +49,15 @@ typedef struct __tagM3C_DiagnosticsInfo {
     /**
      * \brief Id.
      */
-    m3c_u32 id;
+    M3C_DiagnosticsId id;
     /**
      * \brief Minimal possible severity.
      */
     M3C_Severity minSeverity;
+    /**
+     * \brief Args for message formatting.
+     */
+    M3C_FmtArgs args;
 } M3C_DiagnosticsInfo;
 
 /**
@@ -51,7 +68,7 @@ typedef struct __tagM3C_DiagnosticsInfo {
  */
 typedef union __tagM3C_DiagnosticsData {
     /**
-     * \brief Represents "instance" data of \ref M3C_DiagnosticsDomain_ASM "ASM" diagnostics.
+     * \brief Represents "instance" data of \ref M3C_DIAGNOSTIC_DOMAIN_ASM "ASM" diagnostics.
      */
     M3C_ASM_DiagnosticsData ASM;
 } M3C_DiagnosticsData;

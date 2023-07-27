@@ -4,6 +4,29 @@
 #include <m3c/common/types.h>
 
 /**
+ * \brief Enumeration of all \ref M3C_DIAGNOSTIC_DOMAIN_ASM "ASM" domain diagnostic ids.
+ */
+typedef enum __tagM3C_ASM_DiagnosticId {
+    /**
+     * \brief Invalid UTF-8 sequence(s).
+     *
+     * \warning Diagnostics with this id point to source code containing invalid UTF-8 sequence(s).
+     */
+    M3C_ASM_DIAGNOSTIC_ID_INVALID_UTF8_SEQUENCES,
+    /**
+     * \brief Unrecognized token.
+     *
+     * \note If the source code pointed to by the diagnostic contains invalid UTF-8 sequence(s),
+     * \ref M3C_ASM_DIAGNOSTIC_ID_INVALID_UTF8_SEQUENCES "INVALID_UTF8_SEQUENCES" diagnostic(s) are
+     * generated.
+     *
+     * \warning Diagnostics with this id may point to source code containing non-ASCII characters
+     * and invalid UTF-8 sequences.
+     */
+    M3C_ASM_DIAGNOSTIC_ID_UNRECOGNIZED_TOKEN
+} M3C_ASM_DiagnosticId;
+
+/**
  * \brief Position with byte index.
  */
 typedef struct __tagM3C_ASM_BPosition {
@@ -22,7 +45,7 @@ typedef struct __tagM3C_ASM_BPosition {
 } M3C_ASM_BPosition;
 
 /**
- * \brief "Instance" data of \ref M3C_DiagnosticsDomain_ASM "ASM" diagnostics.
+ * \brief "Instance" data of \ref M3C_DIAGNOSTIC_DOMAIN_ASM "ASM" diagnostics.
  */
 typedef struct __tagM3C_ASM_DiagnosticsData {
     /**
