@@ -1,4 +1,4 @@
-#include <m3c/asm/diagnostics_data.h>
+#include <m3c/asm/diagnostics_info.h>
 
 m3c_u8 const __M3C_ASM_STR_DIAGNOSTIC_INVALID_ENCODING[22] =
     "\x15"
