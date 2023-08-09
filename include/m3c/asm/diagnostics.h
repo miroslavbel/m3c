@@ -8,20 +8,19 @@
  */
 typedef enum __tagM3C_ASM_DiagnosticId {
     /**
-     * \brief Invalid UTF-8 sequence(s).
+     * \brief Invalid byte sequence.
      *
-     * \warning Diagnostics with this id point to source code containing invalid UTF-8 sequence(s).
+     * \warning Diagnostics with this id point to source code containing invalid byte sequence.
      */
-    M3C_ASM_DIAGNOSTIC_ID_INVALID_UTF8_SEQUENCES,
+    M3C_ASM_DIAGNOSTIC_ID_INVALID_ENCODING,
     /**
      * \brief Unrecognized token.
      *
-     * \note If the source code pointed to by the diagnostic contains invalid UTF-8 sequence(s),
-     * \ref M3C_ASM_DIAGNOSTIC_ID_INVALID_UTF8_SEQUENCES "INVALID_UTF8_SEQUENCES" diagnostic(s) are
-     * generated.
+     * \note If the source code pointed to by the diagnostic contains invalid byte sequence,
+     * \ref M3C_ASM_DIAGNOSTIC_ID_INVALID_ENCODING "INVALID_ENCODING" diagnostic(s) are generated.
      *
      * \warning Diagnostics with this id may point to source code containing non-ASCII characters
-     * and invalid UTF-8 sequences.
+     * and invalid byte sequence.
      */
     M3C_ASM_DIAGNOSTIC_ID_UNRECOGNIZED_TOKEN
 } M3C_ASM_DiagnosticId;
