@@ -78,23 +78,23 @@ typedef union __tagM3C_DiagnosticsData {
  */
 typedef struct __tagM3C_Diagnostic {
     /**
-     * \brief General info about this diagnostic.
-     *
-     * \details Contains diagnostic \ref M3C_DiagnosticsDomain "domain" and id and some common (and
-     * static) info for diagnostics of this domain and id.
-     */
-    M3C_DiagnosticsInfo *info;
-    /**
-     * \brief Severity of this diagnostic.
-     */
-    M3C_Severity severity;
-    /**
      * \brief Diagnostic "instance" data.
      *
      * \details Data that changes from one instance with the same \ref M3C_DiagnosticsDomain
      * "domain" and id to another. For example, position, severity, etc.
      */
     M3C_DiagnosticsData data;
+    /**
+     * \brief General info about this diagnostic.
+     *
+     * \details Contains diagnostic \ref M3C_DiagnosticsDomain "domain" and id and some common (and
+     * static) info for diagnostics of this domain and id.
+     */
+    M3C_DiagnosticsInfo const *info;
+    /**
+     * \brief Severity of this diagnostic.
+     */
+    M3C_Severity severity;
 } M3C_Diagnostic;
 
 #endif /* _M3C_INCGUARD_CORE_DIAGNOSTICS_H */
