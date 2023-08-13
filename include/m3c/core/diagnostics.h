@@ -97,4 +97,26 @@ typedef struct __tagM3C_Diagnostic {
     M3C_Severity severity;
 } M3C_Diagnostic;
 
+typedef M3C_VEC(M3C_Diagnostic) M3C_DiagnosticVec;
+
+/**
+ * \brief Diagnostics vector with \ref M3C_Diagnostics::warnings "warning" and \ref
+ * M3C_Diagnostics::errors "error" counters.
+ */
+typedef struct __tagM3C_Diagnostics {
+    /**
+     * \brief Diagnostics vector.
+     */
+    M3C_DiagnosticVec vec;
+    /**
+     * \brief Number of \ref M3C_SEVERITY_WARNING "warnings".
+     */
+    m3c_u32 warnings;
+    /**
+     * \brief Number of errors (both \ref M3C_SEVERITY_ERROR "error" and \ref
+     * M3C_SEVERITY_FATAL_ERROR "fatal error").
+     */
+    m3c_u32 errors;
+} M3C_Diagnostics;
+
 #endif /* _M3C_INCGUARD_CORE_DIAGNOSTICS_H */
