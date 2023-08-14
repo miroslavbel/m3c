@@ -72,9 +72,9 @@ int M3C_UTF8ValidateCodepoint(const m3c_u8 **ptr, const m3c_u8 *last);
  * \param[out] cp   writes here the decoded ASCII code point or `�`
  * \param[out] len  writes here the byte length of the decoded code point
  * \return
- * + M3C_ERROR_OK
- * + M3C_ERROR_EOF - `last` is less than `ptr`.
- * + M3C_ERROR_INVALID_ENCODING - in this case, the code point of `�` is written to `cp` and the
+ * + #M3C_ERROR_OK
+ * + #M3C_ERROR_EOF - if `last` is less than `ptr`
+ * + #M3C_ERROR_INVALID_ENCODING - in this case, the code point of `�` is written to `cp` and the
  * length of the maximal subpart of an ill-formed subsequence is written to `len`
  */
 M3C_ERROR M3C_UTF8GetASCIICodepointWithLen(

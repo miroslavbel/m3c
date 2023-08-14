@@ -41,7 +41,7 @@ typedef struct __tagM3C_ASM_DiagnosticsData {
     /**
      * \brief Handle of include information.
      */
-    m3c_u32 hInclude;
+    M3C_hINCLUDE hInclude;
 } M3C_ASM_DiagnosticsData;
 
 #endif /* _M3C_INCGUARD_ASM_DIAGNOSTICS_H */

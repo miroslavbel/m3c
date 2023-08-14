@@ -18,7 +18,7 @@ typedef enum __tagM3C_ASM_TokenKind {
     /**
      * \brief New line.
      */
-    M3C_ASM_TOKEN_KIND_NEW_LINE,
+    M3C_ASM_TOKEN_KIND_NEW_LINE
 } M3C_ASM_TokenKind;
 
 /**
@@ -49,6 +49,17 @@ struct __tagM3C_ASM_Token {
     M3C_ASM_Position end;
 };
 
+/**
+ * \brief Lexes the given document.
+ *
+ * \details Fills \ref M3C_ASM_Document::tokens "tokens" and \ref M3C_ASM_Document::diagnostics
+ * "diagnostics" of the document.
+ *
+ * \param[in,out] document
+ * \return
+ * + #M3C_ERROR_OK
+ * + #M3C_ERROR_OOM - if failed to push token or diagnostic
+ */
 M3C_ERROR M3C_ASM_lex(M3C_ASM_Document *document);
 
 #endif /* _M3C_INCGUARD_ASM_LEX_H */

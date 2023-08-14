@@ -78,6 +78,14 @@ struct __tagM3C_ASM_Document {
      * them each time the same document is included.
      */
     M3C_Diagnostics diagnostics;
+    /**
+     * \brief Handle of the include information (by which the document was included for the
+     * **first** time).
+     *
+     * \note The same document can be included many times from different documents (and even
+     * explicitly by the user itself as an entry document).
+     */
+    M3C_hINCLUDE hInclude;
 };
 
 /**

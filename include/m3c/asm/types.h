@@ -16,6 +16,11 @@ typedef M3C_VEC(M3C_ASM_Token) M3C_ASM_Tokens;
  * forward declarations from <m3c/asm/preproc.h>
  **************************************************************************************************/
 
+/**
+ * \brief Handle of include information.
+ */
+typedef m3c_u16 M3C_hINCLUDE;
+
 typedef struct __tagM3C_ASM_Document M3C_ASM_Document;
 
 /***************************************************************************************************

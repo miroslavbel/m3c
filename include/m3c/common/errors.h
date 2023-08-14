@@ -18,7 +18,7 @@ typedef enum __tagM3C_ERROR {
      */
     M3C_ERROR_EOF = 2,
     /**
-     * @brief Invalid encoding.
+     * \brief Invalid encoding.
      */
     M3C_ERROR_INVALID_ENCODING = 3
 } M3C_ERROR;
