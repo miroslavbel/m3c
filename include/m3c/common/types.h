@@ -22,6 +22,27 @@ typedef unsigned long long m3c_u8;
 #    endif
 #endif
 
+#ifndef m3c_u16
+#    ifndef FORBIT_USE_OF_STDTYPES
+#        include <limits.h>
+#        if UCHAR_MAX >= 0xffff
+typedef unsigned char m3c_u16;
+#        elif USHRT_MAX >= 0xffff
+typedef unsigned short m3c_u16;
+#        elif UINT_MAX >= 0xffff
+typedef unsigned int m3c_u16;
+#        elif ULONG_MAX >= 0xffff
+typedef unsigned long m3c_u16;
+#        elif __STDC_VERSION__ >= 199901L && ULLONG_MAX >= 0xffff
+typedef unsigned long long m3c_u16;
+#        else
+#            error "Can't find type for m3c_u16 with <limits.h>"
+#        endif
+#    else
+#        error "m3c_u16 is not defined and FORBIT_TO_USE_STDTYPES is defined"
+#    endif
+#endif
+
 #ifndef m3c_u32
 #    ifndef FORBIT_USE_OF_STDTYPES
 #        include <limits.h>

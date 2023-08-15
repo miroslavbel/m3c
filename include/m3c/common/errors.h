@@ -12,7 +12,15 @@ typedef enum __tagM3C_ERROR {
     /**
      * \brief Out Of Memory.
      */
-    M3C_ERROR_OOM = 1
+    M3C_ERROR_OOM = 1,
+    /**
+     * \brief End Of File.
+     */
+    M3C_ERROR_EOF = 2,
+    /**
+     * \brief Invalid encoding.
+     */
+    M3C_ERROR_INVALID_ENCODING = 3
 } M3C_ERROR;
 
 #endif /* _M3C_INCGUARD_ERRORS_H */

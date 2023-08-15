@@ -2,47 +2,29 @@
 #define _M3C_INCGUARD_ASM_DIAGNOSTICS_H
 
 #include <m3c/common/types.h>
+#include <m3c/asm/types.h>
 
 /**
  * \brief Enumeration of all \ref M3C_DIAGNOSTIC_DOMAIN_ASM "ASM" domain diagnostic ids.
  */
 typedef enum __tagM3C_ASM_DiagnosticId {
     /**
-     * \brief Invalid UTF-8 sequence(s).
+     * \brief Invalid byte sequence.
      *
-     * \warning Diagnostics with this id point to source code containing invalid UTF-8 sequence(s).
+     * \warning Diagnostics with this id point to source code containing invalid byte sequence.
      */
-    M3C_ASM_DIAGNOSTIC_ID_INVALID_UTF8_SEQUENCES,
+    M3C_ASM_DIAGNOSTIC_ID_INVALID_ENCODING,
     /**
      * \brief Unrecognized token.
      *
-     * \note If the source code pointed to by the diagnostic contains invalid UTF-8 sequence(s),
-     * \ref M3C_ASM_DIAGNOSTIC_ID_INVALID_UTF8_SEQUENCES "INVALID_UTF8_SEQUENCES" diagnostic(s) are
-     * generated.
+     * \note If the source code pointed to by the diagnostic contains invalid byte sequence,
+     * \ref M3C_ASM_DIAGNOSTIC_ID_INVALID_ENCODING "INVALID_ENCODING" diagnostic(s) are generated.
      *
      * \warning Diagnostics with this id may point to source code containing non-ASCII characters
-     * and invalid UTF-8 sequences.
+     * and invalid byte sequence.
      */
     M3C_ASM_DIAGNOSTIC_ID_UNRECOGNIZED_TOKEN
 } M3C_ASM_DiagnosticId;
-
-/**
- * \brief Position with byte index.
- */
-typedef struct __tagM3C_ASM_BPosition {
-    /**
-     * \brief Zero-based index of the line.
-     */
-    m3c_u32 line;
-    /**
-     * \brief Zero-based index of the character in the #line.
-     */
-    m3c_u32 character;
-    /**
-     * \brief Zero-based index of the byte.
-     */
-    m3c_u32 byte;
-} M3C_ASM_BPosition;
 
 /**
  * \brief "Instance" data of \ref M3C_DIAGNOSTIC_DOMAIN_ASM "ASM" diagnostics.
@@ -51,15 +33,15 @@ typedef struct __tagM3C_ASM_DiagnosticsData {
     /**
      * \brief Start position.
      */
-    M3C_ASM_BPosition start;
+    M3C_ASM_Position start;
     /**
-     * \brief Length in bytes.
+     * \brief End position (exclusive).
      */
-    m3c_u32 len;
+    M3C_ASM_Position end;
     /**
      * \brief Handle of include information.
      */
-    m3c_u32 hInclude;
+    M3C_hINCLUDE hInclude;
 } M3C_ASM_DiagnosticsData;
 
 #endif /* _M3C_INCGUARD_ASM_DIAGNOSTICS_H */

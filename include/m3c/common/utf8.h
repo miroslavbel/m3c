@@ -2,6 +2,8 @@
 #define _M3C_INCGUARD_UTF8_H
 
 #include <m3c/common/types.h>
+#include <m3c/common/errors.h>
+#include <m3c/common/unicode.h>
 
 /**
  * \brief UTF-8 code unit.
@@ -58,5 +60,25 @@ typedef m3c_u8 M3C_UTF8cu;
  * \return #M3C_UTF8_OK or #M3C_UTF8_ERR
  */
 int M3C_UTF8ValidateCodepoint(const m3c_u8 **ptr, const m3c_u8 *last);
+
+/**
+ * \brief Decodes the first code point in the buffer. If it is an ASCII code point, it writes it to
+ * `cp`. If it is not an ASCII code point or there is an error, it writes the code point of `�` to
+ * the `cp`.
+ *
+ * \param[in]  ptr  a pointer to first code unit in buffer
+ * \param[in]  last a pointer to the last code unit in the buffer or, if the buffer is empty, to
+ * something with an address lesser than `ptr`. Can be `NULL`
+ * \param[out] cp   writes here the decoded ASCII code point or `�`
+ * \param[out] len  writes here the byte length of the decoded code point
+ * \return
+ * + #M3C_ERROR_OK
+ * + #M3C_ERROR_EOF - if `last` is less than `ptr`
+ * + #M3C_ERROR_INVALID_ENCODING - in this case, the code point of `�` is written to `cp` and the
+ * length of the maximal subpart of an ill-formed subsequence is written to `len`
+ */
+M3C_ERROR M3C_UTF8GetASCIICodepointWithLen(
+    const m3c_u8 *ptr, const m3c_u8 *last, M3C_UCP *cp, m3c_size_t *len
+);
 
 #endif /* _M3C_INCGUARD_UTF8_H */
