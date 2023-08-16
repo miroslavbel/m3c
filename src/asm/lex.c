@@ -133,15 +133,14 @@ M3C_ERROR __M3C_ASM_Lexer_peek(M3C_ASM_Lexer *lexer, M3C_UCP *cp, m3c_size_t *cp
  * + (required) \ref M3C_ASM_DIAGNOSTIC_ID_UNRECOGNIZED_TOKEN "UNRECOGNIZED_TOKEN"
  * + (possible) \ref M3C_ASM_DIAGNOSTIC_ID_INVALID_ENCODING "INVALID_ENCODING"
  *
- * \param[in,out] lexer
- * \param[out]    token
+ * \param[in,out] lexer lexer
+ * \param[in,out] token token
  * \return
  * + #M3C_ERROR_OK
  * + #M3C_ERROR_EOF - if EOF is reached
  * + #M3C_ERROR_OOM - if failed to push token or diagnostic
  */
 M3C_ERROR __M3C_ASM_lexUnrecognisedToken(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
-
     VAR_DECL;
     M3C_Diagnostic diagInvalidToken;
     M3C_Diagnostic diagInvalidEncoding;
@@ -211,6 +210,70 @@ M3C_ERROR __M3C_ASM_lexUnrecognisedToken(M3C_ASM_Lexer *lexer, M3C_ASM_Token *to
 }
 
 /**
+ * \brief Lexes \ref M3C_ASM_TOKEN_KIND_COMMENT "COMMENT" token.
+ *
+ * \details Diagnostics:
+ * + (possible) \ref M3C_ASM_DIAGNOSTIC_ID_INVALID_ENCODING "INVALID_ENCODING"
+ *
+ * \param[in,out] lexer lexer
+ * \param[out]    token token
+ * \return
+ * + #M3C_ERROR_OK
+ * + #M3C_ERROR_EOF - if EOF is reached
+ * + #M3C_ERROR_OOM - if failed to push token or diagnostic
+ */
+M3C_ERROR __M3C_ASM_lexCommentToken(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
+    VAR_DECL;
+    M3C_Diagnostic diagInvalidEncoding;
+
+    diagInvalidEncoding.severity = M3C_SEVERITY_ERROR;
+    diagInvalidEncoding.info = &M3C_ASM_DIAGNOSTIC_INFO_INVALID_ENCODING;
+
+    /* looking for EOL or EOF */
+    M3C_LOOP {
+        PEEK;
+
+        if (status == M3C_ERROR_EOF)
+            break;
+        else if (status == M3C_ERROR_OK) {
+            if (cp == '\n')
+                break;
+            else {
+                ADVANCE;
+                continue;
+            }
+        }
+        /* well, let's handle invalid encoding (status == M3C_ERROR_INVALID_ENCODING) */
+
+        DIAG_START_FROM_LEXER(&diagInvalidEncoding);
+        ADVANCE;
+
+        /* looking for EOF or valid code point */
+        M3C_LOOP {
+            PEEK;
+            if (status == M3C_ERROR_OK || status == M3C_ERROR_EOF)
+                break;
+
+            ADVANCE;
+        }
+        DIAG_END(&diagInvalidEncoding);
+
+        if (M3C_VEC_PUSH(M3C_Diagnostic, &lexer->diagnostics->vec, &diagInvalidEncoding) !=
+            M3C_ERROR_OK)
+            return M3C_ERROR_OOM;
+        ++lexer->diagnostics->errors;
+    }
+
+    token->kind = M3C_ASM_TOKEN_KIND_COMMENT;
+    TOK_END(token);
+
+    if (M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, token) != M3C_ERROR_OK)
+        return M3C_ERROR_OOM;
+
+    return status;
+}
+
+/**
  * \brief Lexes the next token (if there is one).
  *
  * \note If EOF is reached but no token is found, #M3C_ERROR_OK is returned.
@@ -242,7 +305,9 @@ M3C_ERROR __M3C_ASM_lexNextToken(M3C_ASM_Lexer *lexer) {
         ADVANCE_NL;
         TOK_END(&token);
         return M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, &token);
-    } else
+    } else if (cp == ';')
+        return __M3C_ASM_lexCommentToken(lexer, &token);
+    else
         return __M3C_ASM_lexUnrecognisedToken(lexer, &token);
 }
 

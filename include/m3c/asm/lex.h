@@ -11,9 +11,16 @@ typedef enum __tagM3C_ASM_TokenKind {
     /**
      * \brief Unrecognized token.
      *
-     * \warning Can contain invalid UTF-8 sequences.
+     * \warning Can contain non-ASCII characters and invalid bytes.
      */
     M3C_ASM_TOKEN_KIND_UNRECOGNIZED = 0,
+    /**
+     * \brief Comment.
+     *
+     * \details Always include `;` as the first character. Don't include EOL sequence.
+     *
+     * \warning Can contain non-ASCII characters and invalid bytes.
+     */
     M3C_ASM_TOKEN_KIND_COMMENT = 1,
     /**
      * \brief New line.
@@ -25,7 +32,10 @@ typedef enum __tagM3C_ASM_TokenKind {
  * \brief Token.
  *
  * \note Only tokens of kind #M3C_ASM_TOKEN_KIND_UNRECOGNIZED and #M3C_ASM_TOKEN_KIND_COMMENT can
- * contain non-ASCII characters or invalid UTF-8 sequences.
+ * contain non-ASCII characters and invalid bytes.
+ *
+ * \warning Token may overlap physical line when using preprocessor (`\\` + EOL is used as logical
+ * line continuation sequence).
  */
 struct __tagM3C_ASM_Token {
     /**
