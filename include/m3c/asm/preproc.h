@@ -92,6 +92,11 @@ struct __tagM3C_ASM_Document {
  * \brief Performs the continuation line collapsing phase of the preprocessor, filling the document
  * \ref M3C_ASM_Document::fragments "fragments".
  *
+ * \details Handled sequences:
+ * + `\\\n`
+ * + `\\\r\n`
+ * + `\\\r'
+ *
  * \warning Overwrites fragments without regard to what is there, which can lead to memory leak.
  *
  * \param document document

@@ -47,13 +47,33 @@ M3C_ERROR __M3C_ASM_Document_ContinuationLineCollapsingPhase(M3C_ASM_Document *d
                 goto lc;
 
             } else {
-                /* just '\n` */
+                /* just '\n` or '\r\n' */
+                ++ptr;
+                ++pos.line;
+                pos.character = 0;
+            }
+        } else if (*ptr == '\r') {
+            fragment = &vec.data[vec.len - 1];
+
+            if (fragment->bLast - ptr >= 1 && ptr[1] == '\n') {
+                /* it's * ~ \r ~ \n and we will handle it in `\n` branch. Now just advance */
+
+                ++ptr;
+                ++pos.character;
+                continue;
+            } else if (ptr - fragment->bFirst >= 1 && ptr[-1] == '\\') {
+                /* '\\\r' */
+
+                x = 2;
+                goto lc;
+            } else {
+                /* just '\r` */
                 ++ptr;
                 ++pos.line;
                 pos.character = 0;
             }
         } else {
-            /* not `\n` but can by multibyte */
+            /* not `\n` or `\r` but can by multibyte */
             M3C_UTF8ValidateCodepoint(&ptr, document->bLast);
             ++pos.character;
         }
