@@ -95,7 +95,7 @@ struct __tagM3C_ASM_Document {
  * \details Handled sequences:
  * + `\\\n`
  * + `\\\r\n`
- * + `\\\r'
+ * + `\\\r`
  *
  * \warning Overwrites fragments without regard to what is there, which can lead to memory leak.
  *
