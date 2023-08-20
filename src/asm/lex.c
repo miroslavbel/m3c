@@ -169,7 +169,9 @@ M3C_ERROR __M3C_ASM_lexUnrecognisedToken(M3C_ASM_Lexer *lexer, M3C_ASM_Token *to
         if (status == M3C_ERROR_EOF)
             break;
         else if (status == M3C_ERROR_OK) {
-            if (cp == '\t' || cp == ' ' || cp == '\n') /* EOT */
+            if (cp == '\n' || cp == '\r' || /* EOL */
+                cp == '\t' || cp == ' ' ||  /* whitespaces */
+                cp == ';' /* comment */)
                 break;
             else {
                 ADVANCE;
@@ -236,7 +238,7 @@ M3C_ERROR __M3C_ASM_lexCommentToken(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) 
         if (status == M3C_ERROR_EOF)
             break;
         else if (status == M3C_ERROR_OK) {
-            if (cp == '\n')
+            if (cp == '\n' || cp == '\r')
                 break;
             else {
                 ADVANCE;
@@ -301,10 +303,25 @@ M3C_ERROR __M3C_ASM_lexNextToken(M3C_ASM_Lexer *lexer) {
     TOK_START(&token);
 
     if (cp == '\n') {
-        token.kind = M3C_ASM_TOKEN_KIND_NEW_LINE;
+        token.kind = M3C_ASM_TOKEN_KIND_EOL;
         ADVANCE_NL;
         TOK_END(&token);
         return M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, &token);
+    } else if (cp == '\r') {
+        token.kind = M3C_ASM_TOKEN_KIND_EOL;
+        ADVANCE;
+        PEEK;
+        if (status == M3C_ERROR_OK && cp == '\n') { /* \r ~ \n */
+            ADVANCE_NL;
+            TOK_END(&token);
+            return M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, &token);
+        } else {
+            __ADVANCE_ONLY_POS_NL;
+            TOK_END(&token);
+            if (M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, &token) != M3C_ERROR_OK)
+                return M3C_ERROR_OOM;
+            return status;
+        }
     } else if (cp == ';')
         return __M3C_ASM_lexCommentToken(lexer, &token);
     else

@@ -23,9 +23,17 @@ typedef enum __tagM3C_ASM_TokenKind {
      */
     M3C_ASM_TOKEN_KIND_COMMENT = 1,
     /**
-     * \brief New line.
+     * \brief End of line.
+     *
+     * \details Recognised EOL sequences:
+     * + `\n`
+     * + `\r\n`
+     * + `\r`
+     *
+     * \note The \ref M3C_ASM_Token::end "end" of tokens of this kind is always set to the start of
+     * a new line.
      */
-    M3C_ASM_TOKEN_KIND_NEW_LINE
+    M3C_ASM_TOKEN_KIND_EOL
 } M3C_ASM_TokenKind;
 
 /**
@@ -55,6 +63,9 @@ struct __tagM3C_ASM_Token {
     M3C_ASM_Position start;
     /**
      * \brief Position of the end of token (exclusive).
+     *
+     * \note If the token kind is \ref M3C_ASM_TOKEN_KIND_EOL "EOL", the field is set to the start
+     * of a new line.
      */
     M3C_ASM_Position end;
 };
