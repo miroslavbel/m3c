@@ -23,6 +23,12 @@ typedef enum __tagM3C_ASM_TokenKind {
      */
     M3C_ASM_TOKEN_KIND_COMMENT = 1,
     /**
+     * \brief Number literal.
+     *
+     * \details Integer number literal.
+     */
+    M3C_ASM_TOKEN_KIND_NUMBER = 2,
+    /**
      * \brief End of line.
      *
      * \details Recognised EOL sequences:
@@ -35,6 +41,11 @@ typedef enum __tagM3C_ASM_TokenKind {
      */
     M3C_ASM_TOKEN_KIND_EOL
 } M3C_ASM_TokenKind;
+
+/**
+ * \brief Maximum token length in code points (due to \ref M3C_ASM_Position "Position" constraints).
+ */
+#define M3C_ASM_Token_MAX_CLEN ((m3c_u32)M3C_U16_MAX * (m3c_u32)M3C_U16_MAX)
 
 /**
  * \brief Token.

@@ -43,6 +43,8 @@ typedef unsigned long long m3c_u16;
 #    endif
 #endif
 
+#define M3C_U16_MAX 0xFFFF
+
 #ifndef m3c_u32
 #    ifndef FORBIT_USE_OF_STDTYPES
 #        include <limits.h>
