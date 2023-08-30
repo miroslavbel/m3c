@@ -29,6 +29,14 @@ typedef enum __tagM3C_ASM_TokenKind {
      */
     M3C_ASM_TOKEN_KIND_NUMBER = 2,
     /**
+     * \brief String literal.
+     *
+     * \details RegEx: `"[0-9A-Za-z]*"?`.
+     *
+     * \warning Can be unterminated.
+     */
+    M3C_ASM_TOKEN_KIND_STRING = 3,
+    /**
      * \brief End of line.
      *
      * \details Recognised EOL sequences:

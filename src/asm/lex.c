@@ -333,9 +333,12 @@ M3C_ERROR __M3C_ASM_lexUnrecognisedToken(M3C_ASM_Lexer *lexer, M3C_ASM_Token *to
         if (status == M3C_ERROR_EOF)
             break;
         else if (status == M3C_ERROR_OK) {
-            if (cp == '\n' || cp == '\r' || /* EOL */
-                cp == '\t' || cp == ' ' ||  /* whitespaces */
-                cp == ';' /* comment */)
+            if (cp == '\n' || cp == '\r' ||  /* EOL */
+                cp == '\t' || cp == ' ' ||   /* whitespaces */
+                cp == ';' ||                 /* comment */
+                M3C_InRange(cp, '0', '9') || /* number */
+                cp == '"'                    /* string */
+            )
                 break;
             else {
                 ADVANCE;
@@ -783,6 +786,170 @@ M3C_ERROR __M3C_ASM_lexZero(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
 }
 
 /**
+ * \brief Lexes the part of \ref M3C_ASM_TOKEN_KIND_STRING "string literal" where an invalid
+ * character sequence is.
+ *
+ * \details Diagnostics:
+ * + (required) \ref M3C_ASM_DIAGNOSTIC_ID_INVALID_CHARACTERS_IN_STRING_LITERAL
+ * "INVALID_CHARACTERS_IN_STRING_LITERAL"
+ * + (possible) \ref M3C_ASM_DIAGNOSTIC_ID_INVALID_ENCODING "INVALID_ENCODING"
+ *
+ * \param[in,out] lexer lexer
+ * \param[in,out] token token
+ * \return
+ * + #M3C_ERROR_OK - OK or EOF is reached
+ * + #M3C_ERROR_OOM - if failed to push token or diagnostic
+ */
+M3C_ERROR __M3C_ASM_lexStringInvalidCharacters(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
+    VAR_DECL;
+
+    M3C_Diagnostic diagInvalidCharacterInStringLiteral;
+    M3C_Diagnostic diagInvalidEncoding;
+
+    /* we need to remember diagnostic index as we may need to add diagInvalidEncoding diagnostics */
+    m3c_size_t invalidCharacterInStringLiteralDiagIndex;
+
+    diagInvalidCharacterInStringLiteral.severity = M3C_SEVERITY_ERROR;
+    diagInvalidCharacterInStringLiteral.info =
+        &M3C_ASM_DIAGNOSTIC_INFO_INVALID_CHARACTERS_IN_STRING_LITERAL;
+
+    diagInvalidEncoding.severity = M3C_SEVERITY_ERROR;
+    diagInvalidEncoding.info = &M3C_ASM_DIAGNOSTIC_INFO_INVALID_ENCODING;
+
+    token->kind = M3C_ASM_TOKEN_KIND_UNRECOGNIZED;
+
+    DIAG_START_FROM_LEXER(&diagInvalidCharacterInStringLiteral);
+
+    /* push diagnostic and save its index */
+    invalidCharacterInStringLiteralDiagIndex = lexer->diagnostics->vec.len;
+    if (M3C_VEC_PUSH(
+            M3C_Diagnostic, &lexer->diagnostics->vec, &diagInvalidCharacterInStringLiteral
+        ) != M3C_ERROR_OK)
+        return M3C_ERROR_OOM;
+    ++lexer->diagnostics->errors;
+
+    M3C_LOOP {
+        PEEK;
+
+        if (status == M3C_ERROR_EOF ||
+            (status == M3C_ERROR_OK && (cp == '\n' || cp == '\r' || /* EOL (and EOT with warning) */
+                                        cp == '"' ||                /* EOT*/
+                                        (M3C_InRange(cp, '0', '9') || M3C_InRange(cp, 'A', 'Z') ||
+                                         M3C_InRange(cp, 'a', 'z')) /* valid code points */
+                                       )))
+            break;
+        else if (status == M3C_ERROR_OK) { /* just an invalid character */
+            ADVANCE;
+            continue;
+        }
+
+        /* well, let's handle invalid encoding (status == M3C_ERROR_INVALID_ENCODING) */
+
+        DIAG_START_FROM_LEXER(&diagInvalidEncoding);
+        ADVANCE;
+
+        /* looking for EOF or valid code point */
+        M3C_LOOP {
+            PEEK;
+            if (status == M3C_ERROR_OK || status == M3C_ERROR_EOF)
+                break;
+
+            ADVANCE;
+        }
+        DIAG_END(&diagInvalidEncoding);
+
+        if (M3C_VEC_PUSH(M3C_Diagnostic, &lexer->diagnostics->vec, &diagInvalidEncoding) !=
+            M3C_ERROR_OK)
+            return M3C_ERROR_OOM;
+        ++lexer->diagnostics->errors;
+    }
+
+    DIAG_END(&lexer->diagnostics->vec.data[invalidCharacterInStringLiteralDiagIndex]);
+
+    return M3C_ERROR_OK;
+}
+
+/**
+ * \brief Lexes the \ref M3C_ASM_TOKEN_KIND_STRING "string literal".
+ *
+ * \details Diagnostics:
+ * + (possible) \ref M3C_ASM_DIAGNOSTIC_ID_INVALID_CHARACTERS_IN_STRING_LITERAL
+ * "INVALID_CHARACTERS_IN_STRING_LITERAL"
+ * + (possible) \ref M3C_ASM_DIAGNOSTIC_ID_INVALID_ENCODING "INVALID_ENCODING"
+ * + (possible) \ref M3C_ASM_DIAGNOSTIC_ID_UNTERMINATED_STRING_LITERAL "UNTERMINATED_STRING_LITERAL"
+ *
+ * \warning It is not guaranteed to return #M3C_ERROR_EOF if EOF is reached after the token.
+ *
+ * \param[in,out] lexer lexer
+ * \param[in,out] token token
+ * \return
+ * + #M3C_ERROR_OK - OK or EOF is reached
+ * + #M3C_ERROR_EOF - if EOF is reached
+ * + #M3C_ERROR_OOM - if failed to push token or diagnostic
+ */
+M3C_ERROR __M3C_ASM_lexString(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
+    VAR_DECL;
+
+    M3C_Diagnostic diagUnterminatedStringLiteral;
+    diagUnterminatedStringLiteral.severity = M3C_SEVERITY_WARNING;
+    diagUnterminatedStringLiteral.info = &M3C_ASM_DIAGNOSTIC_INFO_UNTERMINATED_STRING_LITERAL;
+
+    token->kind = M3C_ASM_TOKEN_KIND_STRING;
+
+    PEEK; /* re-peek '"' */
+    ADVANCE;
+
+    M3C_LOOP {
+        PEEK;
+
+        if (status == M3C_ERROR_OK &&
+            (M3C_InRange(cp, '0', '9') || M3C_InRange(cp, 'A', 'Z') || M3C_InRange(cp, 'a', 'z'))) {
+            ADVANCE;
+            continue;
+
+        } else if (status == M3C_ERROR_OK && cp == '"') {
+            ADVANCE;
+            TOK_END(token);
+
+            if (M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, token) != M3C_ERROR_OK)
+                return M3C_ERROR_OOM;
+            return M3C_ERROR_OK;
+
+        } else if (status == M3C_ERROR_EOF || (status == M3C_ERROR_OK && (cp == '\n' || cp == '\r'))) {
+            DIAG_START_FROM_TOKEN(&diagUnterminatedStringLiteral, token);
+            DIAG_END(&diagUnterminatedStringLiteral);
+
+            if (M3C_VEC_PUSH(
+                    M3C_Diagnostic, &lexer->diagnostics->vec, &diagUnterminatedStringLiteral
+                ) != M3C_ERROR_OK)
+                return M3C_ERROR_OOM;
+            ++lexer->diagnostics->warnings;
+
+            TOK_END(token);
+            if (M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, token) != M3C_ERROR_OK)
+                return M3C_ERROR_OOM;
+            return status; /* can be OK and EOF */
+
+        } else {
+            /**
+             * NOTE: (status == INVALID_ENCODING) OR (status == OK and cp !=
+             *   1. [0-9A-Za-z]
+             *   2. '"'
+             *   3. EOL
+             *   4. '\\'
+             * )
+             */
+
+            status = __M3C_ASM_lexStringInvalidCharacters(lexer, token);
+            if (status != M3C_ERROR_OK)
+                return status;
+
+            continue;
+        }
+    }
+}
+
+/**
  * \brief Lexes the next token (if there is one).
  *
  * \note If EOF is reached but no token is found, #M3C_ERROR_OK is returned.
@@ -829,9 +996,11 @@ M3C_ERROR __M3C_ASM_lexNextToken(M3C_ASM_Lexer *lexer) {
                 return M3C_ERROR_OOM;
             return status;
         }
-    } else if (cp == '0') {
+    } else if (cp == '"')
+        return __M3C_ASM_lexString(lexer, &token);
+    else if (cp == '0')
         return __M3C_ASM_lexZero(lexer, &token);
-    } else if (cp >= '1' && cp <= '9') {
+    else if (cp >= '1' && cp <= '9') {
         ADVANCE;
         return __M3C_ASM_lexNumberBody(lexer, &token, UNDERSCORE_DIGITS_LEN_DEC);
     } else if (cp == ';')

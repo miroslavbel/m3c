@@ -22,11 +22,11 @@ typedef enum __tagM3C_ASM_DiagnosticId {
      * \details #M3C_ASM_lex emits this diagnostic when encounters an \ref
      * M3C_ASM_TOKEN_KIND_UNRECOGNIZED "UNRECOGNIZED" token.
      *
-     * \note If the source code pointed to by the diagnostic contains invalid byte sequence,
-     * \ref M3C_ASM_DIAGNOSTIC_ID_INVALID_ENCODING "INVALID_ENCODING" diagnostic(s) are generated.
-     *
      * \warning Diagnostics with this id may point to source code containing non-ASCII characters
      * and invalid byte sequence.
+     *
+     * \note If the source code pointed to by the diagnostic contains invalid byte sequence,
+     * \ref M3C_ASM_DIAGNOSTIC_ID_INVALID_ENCODING "INVALID_ENCODING" diagnostic(s) are generated.
      */
     M3C_ASM_DIAGNOSTIC_ID_UNRECOGNIZED_TOKEN,
     /**
@@ -81,7 +81,34 @@ typedef enum __tagM3C_ASM_DiagnosticId {
      * + `[0-9]` - for decimal
      * + `[0-9A-Fa-F]` - for hexadecimal
      */
-    M3C_ASM_DIAGNOSTIC_ID_INVALID_DIGIT_FOR_THIS_BASE_PREFIX
+    M3C_ASM_DIAGNOSTIC_ID_INVALID_DIGIT_FOR_THIS_BASE_PREFIX,
+    /**
+     * \brief Invalid character(s) in string literal.
+     *
+     * \details #M3C_ASM_lex emits this diagnostic when trying to lex a \ref
+     * M3C_ASM_TOKEN_KIND_STRING "STRING" token and a sequence of invalid characters is encountered.
+     * Only `[0-9A-Za-z]` are valid characters for string literal.
+     *
+     * \warning Diagnostics with this id may point to source code containing non-ASCII characters
+     * and invalid byte sequence.
+     *
+     * \note If the source code pointed to by the diagnostic contains invalid byte sequence,
+     * \ref M3C_ASM_DIAGNOSTIC_ID_INVALID_ENCODING "INVALID_ENCODING" diagnostic(s) are generated.
+     */
+    M3C_ASM_DIAGNOSTIC_ID_INVALID_CHARACTERS_IN_STRING_LITERAL,
+    /**
+     * \brief Unterminated string literal.
+     *
+     * \details #M3C_ASM_lex emits this diagnostic when trying to lex a \ref
+     * M3C_ASM_TOKEN_KIND_STRING "STRING" token and this token has no closing QUOTATION MARK (`"`).
+     *
+     * \warning Diagnostics with this id may point to source code containing non-ASCII characters
+     * and invalid byte sequence.
+     *
+     * \note If the source code pointed to by the diagnostic contains invalid byte sequence,
+     * \ref M3C_ASM_DIAGNOSTIC_ID_INVALID_ENCODING "INVALID_ENCODING" diagnostic(s) are generated.
+     */
+    M3C_ASM_DIAGNOSTIC_ID_UNTERMINATED_STRING_LITERAL
 } M3C_ASM_DiagnosticId;
 
 /**
