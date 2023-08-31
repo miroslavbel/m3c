@@ -37,6 +37,12 @@ typedef enum __tagM3C_ASM_TokenKind {
      */
     M3C_ASM_TOKEN_KIND_STRING = 3,
     /**
+     * \brief Symbol.
+     *
+     * \details RegEx: `[_A-Za-z][_0-9A-Za-z]*`.
+     */
+    M3C_ASM_TOKEN_KIND_SYMBOL = 4,
+    /**
      * \brief End of line.
      *
      * \details Recognised EOL sequences:
