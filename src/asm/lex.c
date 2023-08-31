@@ -337,6 +337,9 @@ M3C_ERROR __M3C_ASM_lexUnrecognisedToken(M3C_ASM_Lexer *lexer, M3C_ASM_Token *to
                 cp == '\t' || cp == ' ' ||   /* whitespaces */
                 cp == ';' ||                 /* comment */
                 M3C_InRange(cp, '0', '9') || /* number */
+                M3C_InRange(cp, 'A', 'Z') || /* symbol*/
+                M3C_InRange(cp, 'a', 'z') || /* symbol*/
+                cp == '_' ||                 /* symbol */
                 cp == '"'                    /* string */
             )
                 break;
@@ -950,6 +953,39 @@ M3C_ERROR __M3C_ASM_lexString(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
 }
 
 /**
+ * \brief Lexes the \ref M3C_ASM_TOKEN_KIND_SYMBOL "symbol" token.
+ *
+ * \param[in,out] lexer lexer
+ * \param[in,out] token token
+ * \return
+ * + #M3C_ERROR_OK - OK or EOF is reached
+ * + #M3C_ERROR_OOM - if failed to push token or diagnostic
+ */
+M3C_ERROR __M3C_ASM_lexSymbol(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
+    VAR_DECL;
+
+    PEEK; /* re-peek first code point - [_A-Za-z] */
+    ADVANCE;
+
+    token->kind = M3C_ASM_TOKEN_KIND_SYMBOL;
+
+    M3C_LOOP {
+        PEEK;
+
+        if (status == M3C_ERROR_OK && (M3C_InRange(cp, '0', '9') || M3C_InRange(cp, 'A', 'Z') ||
+                                       M3C_InRange(cp, 'a', 'z') || cp == '_')) {
+            ADVANCE;
+            continue;
+        }
+
+        break;
+    }
+    TOK_END(token);
+
+    return M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, token);
+}
+
+/**
  * \brief Lexes the next token (if there is one).
  *
  * \note If EOF is reached but no token is found, #M3C_ERROR_OK is returned.
@@ -1005,6 +1041,8 @@ M3C_ERROR __M3C_ASM_lexNextToken(M3C_ASM_Lexer *lexer) {
         return __M3C_ASM_lexNumberBody(lexer, &token, UNDERSCORE_DIGITS_LEN_DEC);
     } else if (cp == ';')
         return __M3C_ASM_lexCommentToken(lexer, &token);
+    else if (cp == '_' || (M3C_InRange(cp, 'A', 'Z') || M3C_InRange(cp, 'a', 'z')))
+        return __M3C_ASM_lexSymbol(lexer, &token);
     else
         return __M3C_ASM_lexUnrecognisedToken(lexer, &token);
 }
