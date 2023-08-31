@@ -190,6 +190,8 @@ const M3C_ASM_ASCIIRange __underscore_digits_letters[8] = {
  */
 #define UNDERSCORE_DIGITS_LETTERS_LEN 8
 
+#define M3C_InRange_LETTER(cp) (M3C_InRange((cp), 'A', 'Z') || M3C_InRange((cp), 'a', 'z'))
+
 typedef struct __tagM3C_ASM_Lexer {
     m3c_u8 const *ptr;
     M3C_ASM_Position pos;
@@ -337,8 +339,7 @@ M3C_ERROR __M3C_ASM_lexUnrecognisedToken(M3C_ASM_Lexer *lexer, M3C_ASM_Token *to
                 cp == '\t' || cp == ' ' ||   /* whitespaces */
                 cp == ';' ||                 /* comment */
                 M3C_InRange(cp, '0', '9') || /* number */
-                M3C_InRange(cp, 'A', 'Z') || /* symbol*/
-                M3C_InRange(cp, 'a', 'z') || /* symbol*/
+                M3C_InRange_LETTER(cp) ||    /* symbol*/
                 cp == '_' ||                 /* symbol */
                 cp == '"'                    /* string */
             )
@@ -763,7 +764,7 @@ M3C_ERROR __M3C_ASM_lexZero(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
 
         return __M3C_ASM_lexNumberUntilEnd(lexer, token);
 
-    } else if (M3C_InRange(cp, 'A', 'Z') || M3C_InRange(cp, 'a', 'z')) {
+    } else if (M3C_InRange_LETTER(cp)) {
 
         DIAG_START_FROM_LEXER(&diagUnknownBasePrefix);
         ADVANCE;
@@ -835,11 +836,11 @@ M3C_ERROR __M3C_ASM_lexStringInvalidCharacters(M3C_ASM_Lexer *lexer, M3C_ASM_Tok
         PEEK;
 
         if (status == M3C_ERROR_EOF ||
-            (status == M3C_ERROR_OK && (cp == '\n' || cp == '\r' || /* EOL (and EOT with warning) */
-                                        cp == '"' ||                /* EOT*/
-                                        (M3C_InRange(cp, '0', '9') || M3C_InRange(cp, 'A', 'Z') ||
-                                         M3C_InRange(cp, 'a', 'z')) /* valid code points */
-                                       )))
+            (status == M3C_ERROR_OK &&
+             (cp == '\n' || cp == '\r' ||                           /* EOL (and EOT with warning) */
+              cp == '"' ||                                          /* EOT */
+              (M3C_InRange(cp, '0', '9') || M3C_InRange_LETTER(cp)) /* valid code points */
+             )))
             break;
         else if (status == M3C_ERROR_OK) { /* just an invalid character */
             ADVANCE;
@@ -905,8 +906,7 @@ M3C_ERROR __M3C_ASM_lexString(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
     M3C_LOOP {
         PEEK;
 
-        if (status == M3C_ERROR_OK &&
-            (M3C_InRange(cp, '0', '9') || M3C_InRange(cp, 'A', 'Z') || M3C_InRange(cp, 'a', 'z'))) {
+        if (status == M3C_ERROR_OK && (M3C_InRange(cp, '0', '9') || M3C_InRange_LETTER(cp))) {
             ADVANCE;
             continue;
 
@@ -972,8 +972,8 @@ M3C_ERROR __M3C_ASM_lexSymbol(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
     M3C_LOOP {
         PEEK;
 
-        if (status == M3C_ERROR_OK && (M3C_InRange(cp, '0', '9') || M3C_InRange(cp, 'A', 'Z') ||
-                                       M3C_InRange(cp, 'a', 'z') || cp == '_')) {
+        if (status == M3C_ERROR_OK &&
+            (cp == '_' || M3C_InRange(cp, '0', '9') || M3C_InRange_LETTER(cp))) {
             ADVANCE;
             continue;
         }
@@ -1041,7 +1041,7 @@ M3C_ERROR __M3C_ASM_lexNextToken(M3C_ASM_Lexer *lexer) {
         return __M3C_ASM_lexNumberBody(lexer, &token, UNDERSCORE_DIGITS_LEN_DEC);
     } else if (cp == ';')
         return __M3C_ASM_lexCommentToken(lexer, &token);
-    else if (cp == '_' || (M3C_InRange(cp, 'A', 'Z') || M3C_InRange(cp, 'a', 'z')))
+    else if (cp == '_' || M3C_InRange_LETTER(cp))
         return __M3C_ASM_lexSymbol(lexer, &token);
     else
         return __M3C_ASM_lexUnrecognisedToken(lexer, &token);
