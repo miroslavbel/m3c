@@ -43,6 +43,22 @@ typedef enum __tagM3C_ASM_TokenKind {
      */
     M3C_ASM_TOKEN_KIND_SYMBOL = 4,
     /**
+     * \brief Left parenthesis (`(`).
+     */
+    M3C_ASM_TOKEN_KIND_L_PAREN = 5,
+    /**
+     * \brief Right parenthesis (`)`).
+     */
+    M3C_ASM_TOKEN_KIND_R_PAREN = 6,
+    /**
+     * \brief Comma (`,`).
+     */
+    M3C_ASM_TOKEN_KIND_COMMA = 7,
+    /**
+     * \brief Colon (`:`).
+     */
+    M3C_ASM_TOKEN_KIND_COLON = 8,
+    /**
      * \brief End of line.
      *
      * \details Recognised EOL sequences:
@@ -50,8 +66,8 @@ typedef enum __tagM3C_ASM_TokenKind {
      * + `\r\n`
      * + `\r`
      *
-     * \note The \ref M3C_ASM_Token::end "end" of tokens of this kind is always set to the start of
-     * a new line.
+     * \note The \ref M3C_ASM_Token::end "end" of tokens of this kind is always set to the start
+     * of a new line.
      */
     M3C_ASM_TOKEN_KIND_EOL
 } M3C_ASM_TokenKind;

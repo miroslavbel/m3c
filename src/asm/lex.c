@@ -339,9 +339,12 @@ M3C_ERROR __M3C_ASM_lexUnrecognisedToken(M3C_ASM_Lexer *lexer, M3C_ASM_Token *to
                 cp == '\t' || cp == ' ' ||   /* whitespaces */
                 cp == ';' ||                 /* comment */
                 M3C_InRange(cp, '0', '9') || /* number */
-                M3C_InRange_LETTER(cp) ||    /* symbol*/
+                M3C_InRange_LETTER(cp) ||    /* symbol */
                 cp == '_' ||                 /* symbol */
-                cp == '"'                    /* string */
+                cp == '"' ||                 /* string */
+                cp == '(' || cp == ')' ||    /* parentheses */
+                cp == ',' ||                 /* comma */
+                cp == ':'                    /* colon */
             )
                 break;
             else {
@@ -985,6 +988,12 @@ M3C_ERROR __M3C_ASM_lexSymbol(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
     return M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, token);
 }
 
+#define ONE_CHAR_TOKEN(ch, tokenKind)                                                              \
+    (cp == (ch)) {                                                                                 \
+        token.kind = (tokenKind);                                                                  \
+        goto one_char_token;                                                                       \
+    }
+
 /**
  * \brief Lexes the next token (if there is one).
  *
@@ -1034,17 +1043,31 @@ M3C_ERROR __M3C_ASM_lexNextToken(M3C_ASM_Lexer *lexer) {
         }
     } else if (cp == '"')
         return __M3C_ASM_lexString(lexer, &token);
+    else if
+        ONE_CHAR_TOKEN('(', M3C_ASM_TOKEN_KIND_L_PAREN)
+    else if
+        ONE_CHAR_TOKEN(')', M3C_ASM_TOKEN_KIND_R_PAREN)
+    else if
+        ONE_CHAR_TOKEN(',', M3C_ASM_TOKEN_KIND_COMMA)
     else if (cp == '0')
         return __M3C_ASM_lexZero(lexer, &token);
     else if (cp >= '1' && cp <= '9') {
         ADVANCE;
         return __M3C_ASM_lexNumberBody(lexer, &token, UNDERSCORE_DIGITS_LEN_DEC);
-    } else if (cp == ';')
+    } else if
+        ONE_CHAR_TOKEN (':', M3C_ASM_TOKEN_KIND_COLON)
+    else if (cp == ';')
         return __M3C_ASM_lexCommentToken(lexer, &token);
     else if (cp == '_' || M3C_InRange_LETTER(cp))
         return __M3C_ASM_lexSymbol(lexer, &token);
     else
         return __M3C_ASM_lexUnrecognisedToken(lexer, &token);
+
+/* Not for EOL */
+one_char_token:
+    ADVANCE;
+    TOK_END(&token);
+    return M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, &token);
 }
 
 M3C_ERROR M3C_ASM_lex(M3C_ASM_Document *document) {
