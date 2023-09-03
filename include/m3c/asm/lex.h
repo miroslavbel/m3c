@@ -59,6 +59,50 @@ typedef enum __tagM3C_ASM_TokenKind {
      */
     M3C_ASM_TOKEN_KIND_COLON = 8,
     /**
+     * \brief Plus sign (`+`).
+     */
+    M3C_ASM_TOKEN_KIND_PLUS = 9,
+    /**
+     * \brief Hyphen-minus (`-`).
+     */
+    M3C_ASM_TOKEN_KIND_MINUS = 10,
+    /**
+     * \brief Asterisk (`*`).
+     */
+    M3C_ASM_TOKEN_KIND_STAR = 11,
+    /**
+     * \brief Solidus (`/`).
+     */
+    M3C_ASM_TOKEN_KIND_SLASH = 12,
+    /**
+     * \brief Percent sign (`%`).
+     */
+    M3C_ASM_TOKEN_KIND_PERCENT = 13,
+    /**
+     * \brief Tilde (`~`).
+     */
+    M3C_ASM_TOKEN_KIND_TILDE = 14,
+    /**
+     * \brief Ampersand (`&`).
+     */
+    M3C_ASM_TOKEN_KIND_AMP = 15,
+    /**
+     * \brief Vertical line (`|`).
+     */
+    M3C_ASM_TOKEN_KIND_PIPE = 16,
+    /**
+     * \brief Circumflex accent (`^`).
+     */
+    M3C_ASM_TOKEN_KIND_CARET = 17,
+    /**
+     * \brief Left shift (`<<`).
+     */
+    M3C_ASM_TOKEN_KIND_LTLT = 18,
+    /**
+     * \brief Right shift (`>>`).
+     */
+    M3C_ASM_TOKEN_KIND_GTGT = 19,
+    /**
      * \brief End of line.
      *
      * \details Recognised EOL sequences:
