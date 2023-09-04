@@ -103,6 +103,34 @@ typedef enum __tagM3C_ASM_TokenKind {
      */
     M3C_ASM_TOKEN_KIND_GTGT = 19,
     /**
+     * \brief `==`.
+     */
+    M3C_ASM_TOKEN_KIND_EQUALEQUAL = 20,
+    /**
+     * \brief `!=`.
+     */
+    M3C_ASM_TOKEN_KIND_EXCLAIMEQUAL = 21,
+    /**
+     * \brief `<`.
+     */
+    M3C_ASM_TOKEN_KIND_LESS = 22,
+    /**
+     * \brief `<=`.
+     */
+    M3C_ASM_TOKEN_KIND_LESSEQUAL = 23,
+    /**
+     * \brief `>`.
+     */
+    M3C_ASM_TOKEN_KIND_GREATER = 24,
+    /**
+     * \brief `>=`.
+     */
+    M3C_ASM_TOKEN_KIND_GREATEREQUAL = 25,
+    /**
+     * \brief Question mark (`?`).
+     */
+    M3C_ASM_TOKEN_KIND_QUESTION = 26,
+    /**
      * \brief End of line.
      *
      * \details Recognised EOL sequences:
