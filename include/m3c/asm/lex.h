@@ -131,6 +131,18 @@ typedef enum __tagM3C_ASM_TokenKind {
      */
     M3C_ASM_TOKEN_KIND_QUESTION = 26,
     /**
+     * \brief Exclamation mark (`!`).
+     */
+    M3C_ASM_TOKEN_KIND_EXCLAIM = 27,
+    /**
+     * \brief `||`.
+     */
+    M3C_ASM_TOKEN_KIND_PIPEPIPE = 28,
+    /**
+     * \brief `&&`.
+     */
+    M3C_ASM_TOKEN_KIND_AMPAMP = 29,
+    /**
      * \brief End of line.
      *
      * \details Recognised EOL sequences:

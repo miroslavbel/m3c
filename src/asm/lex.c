@@ -351,13 +351,13 @@ M3C_ERROR __M3C_ASM_lexUnrecognisedToken(M3C_ASM_Lexer *lexer, M3C_ASM_Token *to
                 cp == '/' ||                 /* slash */
                 cp == '%' ||                 /* percent */
                 cp == '~' ||                 /* tilde */
-                cp == '&' ||                 /* amp */
-                cp == '|' ||                 /* pipe */
+                cp == '&' ||                 /* amp, ampamp */
+                cp == '|' ||                 /* pipe, pipepipe */
                 cp == '^' ||                 /* caret */
                 cp == '<' ||                 /* less, ltlt, lessequal */
                 cp == '=' ||                 /* equalequal */
                 cp == '>' ||                 /* greater, gtgt, greaterequal */
-                cp == '!' ||                 /* exclaimequal */
+                cp == '!' ||                 /* exclaim, exclaimequal */
                 cp == '?'                    /* question */
             )
                 break;
@@ -1061,15 +1061,27 @@ M3C_ERROR __M3C_ASM_lexNextToken(M3C_ASM_Lexer *lexer) {
         if (status == M3C_ERROR_OK && cp == '=') {
             token.kind = M3C_ASM_TOKEN_KIND_EXCLAIMEQUAL;
             goto one_char_token;
-        } else
-            return __M3C_ASM_lexUnrecognisedToken(lexer, &token);
+        } else {
+            token.kind = M3C_ASM_TOKEN_KIND_EXCLAIM;
+            TOK_END(&token);
+            return M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, &token);
+        }
     } else if (cp == '"')
         return __M3C_ASM_lexString(lexer, &token);
     else if
         ONE_CHAR_TOKEN('%', M3C_ASM_TOKEN_KIND_PERCENT)
-    else if
-        ONE_CHAR_TOKEN('&', M3C_ASM_TOKEN_KIND_AMP)
-    else if
+    else if (cp == '&') {
+        ADVANCE;
+        PEEK;
+        if (status == M3C_ERROR_OK && cp == '&') {
+            token.kind = M3C_ASM_TOKEN_KIND_AMPAMP;
+            goto one_char_token;
+        } else {
+            token.kind = M3C_ASM_TOKEN_KIND_AMP;
+            TOK_END(&token);
+            return M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, &token);
+        }
+    } else if
         ONE_CHAR_TOKEN('(', M3C_ASM_TOKEN_KIND_L_PAREN)
     else if
         ONE_CHAR_TOKEN(')', M3C_ASM_TOKEN_KIND_R_PAREN)
@@ -1132,9 +1144,18 @@ M3C_ERROR __M3C_ASM_lexNextToken(M3C_ASM_Lexer *lexer) {
         else if (cp == '_' || M3C_InRange_LETTER(cp)) return __M3C_ASM_lexSymbol(lexer, &token);
     else if
         ONE_CHAR_TOKEN('^', M3C_ASM_TOKEN_KIND_CARET)
-    else if
-        ONE_CHAR_TOKEN('|', M3C_ASM_TOKEN_KIND_PIPE)
-    else if
+    else if (cp == '|') {
+        ADVANCE;
+        PEEK;
+        if (status == M3C_ERROR_OK && cp == '|') {
+            token.kind = M3C_ASM_TOKEN_KIND_PIPEPIPE;
+            goto one_char_token;
+        } else {
+            token.kind = M3C_ASM_TOKEN_KIND_PIPE;
+            TOK_END(&token);
+            return M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, &token);
+        }
+    } else if
         ONE_CHAR_TOKEN('~', M3C_ASM_TOKEN_KIND_TILDE)
     else
         return __M3C_ASM_lexUnrecognisedToken(lexer, &token);
