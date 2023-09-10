@@ -31,7 +31,27 @@ typedef enum __tagM3C_ASM_TokenKind {
     /**
      * \brief String literal.
      *
-     * \details RegEx: `"[0-9A-Za-z]*"?`.
+     * \details String literal starts with `"` and ends with `"`, EOL, or EOF. If string literals
+     * doesn't ends with `"` \ref M3C_ASM_DIAGNOSTIC_ID_UNTERMINATED_STRING_LITERAL
+     * "UNTERMINATED_STRING_LITERAL" will be emitted.
+     *
+     * String literal can contains at least 0 elements. Each element of string can be:
+     * + a printable character (`[ -~]`) except `"` and `\` characters
+     * + an escape sequences
+     *
+     * Escape sequences:
+     * + `\xN`, where N is one or two hexadecimal digits - arbitrary number of hexadecimal digits
+     * + `\'` - byte 0x27
+     * + `\"` - byte 0x22
+     * + `\?` - byte 0x3f
+     * + `\\` - byte 0x5c
+     * + `\a` - byte 0x07
+     * + `\b` - byte 0x08
+     * + `\f` - byte 0x0c
+     * + `\n` - byte 0x0a
+     * + `\r` - byte 0x0d
+     * + `\t` - byte 0x09
+     * + `\v` - byte 0x0b
      *
      * \warning Can be unterminated.
      */

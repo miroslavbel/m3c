@@ -192,6 +192,11 @@ const M3C_ASM_ASCIIRange __underscore_digits_letters[8] = {
 
 #define M3C_InRange_LETTER(cp) (M3C_InRange((cp), 'A', 'Z') || M3C_InRange((cp), 'a', 'z'))
 
+#define M3C_InRange_DIGIT_HEX(cp)                                                                  \
+    (M3C_InRange(cp, '0', '9') || M3C_InRange(cp, 'A', 'F') || M3C_InRange(cp, 'a', 'f'))
+
+#define M3C_InRange_PRINTABLE(cp) (M3C_InRange(cp, ' ', '~'))
+
 typedef struct __tagM3C_ASM_Lexer {
     m3c_u8 const *ptr;
     M3C_ASM_Position pos;
@@ -239,11 +244,11 @@ M3C_ERROR __M3C_ASM_Lexer_peek(M3C_ASM_Lexer *lexer, M3C_UCP *cp, m3c_size_t *cp
         /* if it's not the end of the fragment just read the next char */
         return M3C_UTF8GetASCIICodepointWithLen(lexer->ptr, lexer->fragment->bLast, cp, cpLen);
 
-    /* looking for non-empty fragment */
+    /* looking for the next non-empty fragment */
     M3C_LOOP {
-        ++lexer->fragment;
-        if (lexer->fragment > lexer->fragmentLast)
+        if (lexer->fragment == lexer->fragmentLast)
             return M3C_ERROR_EOF;
+        ++lexer->fragment;
 
         if (lexer->fragment->bLast != M3C_NULL)
             break;
@@ -853,11 +858,10 @@ M3C_ERROR __M3C_ASM_lexStringInvalidCharacters(M3C_ASM_Lexer *lexer, M3C_ASM_Tok
         PEEK;
 
         if (status == M3C_ERROR_EOF ||
-            (status == M3C_ERROR_OK &&
-             (cp == '\n' || cp == '\r' ||                           /* EOL (and EOT with warning) */
-              cp == '"' ||                                          /* EOT */
-              (M3C_InRange(cp, '0', '9') || M3C_InRange_LETTER(cp)) /* valid code points */
-             )))
+            (status == M3C_ERROR_OK && (cp == '\n' || cp == '\r' || /* EOL (and EOT with warning) */
+                                        cp == '"' ||                /* EOT */
+                                        (M3C_InRange_PRINTABLE(cp)) /* valid code points */
+                                       )))
             break;
         else if (status == M3C_ERROR_OK) { /* just an invalid character */
             ADVANCE;
@@ -891,6 +895,90 @@ M3C_ERROR __M3C_ASM_lexStringInvalidCharacters(M3C_ASM_Lexer *lexer, M3C_ASM_Tok
 }
 
 /**
+ * \brief Lexes escape sequences in \ref M3C_ASM_TOKEN_KIND_STRING "string literal".
+ *
+ * \details Diagnostics:
+ * + (possible) \ref M3C_ASM_DIAGNOSTIC_ID_UNKNOWN_ESCAPE_SEQUENCE
+ * "UNKNOWN_ESCAPE_SEQUENCE"
+ * + (possible) \ref M3C_ASM_DIAGNOSTIC_ID_X_USED_WITH_NO_FOLLOWING_HEX_DIGITS
+ * "X_USED_WITH_NO_FOLLOWING_HEX_DIGITS"
+ *
+ * \param[in,out] lexer lexer
+ * \param[in,out] token token
+ * \return
+ * + #M3C_ERROR_OK - OK or EOF is reached
+ * + #M3C_ERROR_OOM - if failed to push token or diagnostic
+ */
+M3C_ERROR __M3C_ASM_lexEscapeSequence(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
+    VAR_DECL;
+
+    M3C_Diagnostic diagUnknownEscapeSequence;
+    M3C_Diagnostic diagXUsedWithNoFollowingHexDigits;
+
+    diagUnknownEscapeSequence.severity = M3C_SEVERITY_WARNING;
+    diagUnknownEscapeSequence.info = &M3C_ASM_DIAGNOSTIC_INFO_UNKNOWN_ESCAPE_SEQUENCE;
+
+    diagXUsedWithNoFollowingHexDigits.severity = M3C_SEVERITY_ERROR;
+    diagXUsedWithNoFollowingHexDigits.info =
+        &M3C_ASM_DIAGNOSTIC_INFO_X_USED_WITH_NO_FOLLOWING_HEX_DIGITS;
+
+    DIAG_START_FROM_LEXER(&diagUnknownEscapeSequence);
+    DIAG_START_FROM_LEXER(&diagXUsedWithNoFollowingHexDigits);
+
+    PEEK; /* re-peek '\\' */
+    ADVANCE;
+
+    PEEK;
+    if (status == M3C_ERROR_OK &&
+        (cp == '\'' || cp == '"' || cp == '?' || cp == '\\' || cp == 'a' || cp == 'b' ||
+         cp == 'f' || cp == 'n' || cp == 'r' || cp == 't' || cp == 'v')) {
+        ADVANCE;
+        return M3C_ERROR_OK;
+    } else if (status == M3C_ERROR_OK && cp == 'x') {
+        ADVANCE;
+        PEEK; /* peek the first digit */
+
+        if (status != M3C_ERROR_OK || (status == M3C_ERROR_OK && !M3C_InRange_DIGIT_HEX(cp))) {
+            token->kind = M3C_ASM_TOKEN_KIND_UNRECOGNIZED;
+            DIAG_END(&diagXUsedWithNoFollowingHexDigits);
+
+            if (M3C_VEC_PUSH(
+                    M3C_Diagnostic, &lexer->diagnostics->vec, &diagXUsedWithNoFollowingHexDigits
+                ) != M3C_ERROR_OK)
+                return M3C_ERROR_OOM;
+            ++lexer->diagnostics->errors;
+
+            return M3C_ERROR_OK;
+        }
+
+        /* Well, the first digit was a valid hex-digit */
+
+        ADVANCE;
+        PEEK; /* peek the second digit (if any) */
+
+        if (status == M3C_ERROR_OK && M3C_InRange_DIGIT_HEX(cp)) {
+            /* we don't care if there are another hex digits ahead like gcc or clang do */
+
+            ADVANCE;
+            return M3C_ERROR_OK;
+        } else {
+            /* just return. We already have at least one hex digit after "\\x" */
+            return M3C_ERROR_OK;
+        }
+    } else {
+        /* unknown escape sequences (and can be also EOF or an invalid encoding) */
+
+        DIAG_END(&diagUnknownEscapeSequence);
+        if (M3C_VEC_PUSH(M3C_Diagnostic, &lexer->diagnostics->vec, &diagUnknownEscapeSequence) !=
+            M3C_ERROR_OK)
+            return M3C_ERROR_OOM;
+        ++lexer->diagnostics->warnings;
+
+        return M3C_ERROR_OK;
+    }
+}
+
+/**
  * \brief Lexes the \ref M3C_ASM_TOKEN_KIND_STRING "string literal".
  *
  * \details Diagnostics:
@@ -898,6 +986,10 @@ M3C_ERROR __M3C_ASM_lexStringInvalidCharacters(M3C_ASM_Lexer *lexer, M3C_ASM_Tok
  * "INVALID_CHARACTERS_IN_STRING_LITERAL"
  * + (possible) \ref M3C_ASM_DIAGNOSTIC_ID_INVALID_ENCODING "INVALID_ENCODING"
  * + (possible) \ref M3C_ASM_DIAGNOSTIC_ID_UNTERMINATED_STRING_LITERAL "UNTERMINATED_STRING_LITERAL"
+ * + (possible) \ref M3C_ASM_DIAGNOSTIC_ID_UNKNOWN_ESCAPE_SEQUENCE
+ * "UNKNOWN_ESCAPE_SEQUENCE"
+ * + (possible) \ref M3C_ASM_DIAGNOSTIC_ID_X_USED_WITH_NO_FOLLOWING_HEX_DIGITS
+ * "X_USED_WITH_NO_FOLLOWING_HEX_DIGITS"
  *
  * \warning It is not guaranteed to return #M3C_ERROR_EOF if EOF is reached after the token.
  *
@@ -923,11 +1015,9 @@ M3C_ERROR __M3C_ASM_lexString(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
     M3C_LOOP {
         PEEK;
 
-        if (status == M3C_ERROR_OK && (M3C_InRange(cp, '0', '9') || M3C_InRange_LETTER(cp))) {
-            ADVANCE;
-            continue;
+        if (status == M3C_ERROR_OK && cp == '"') {
+            /* ": EOT */
 
-        } else if (status == M3C_ERROR_OK && cp == '"') {
             ADVANCE;
             TOK_END(token);
 
@@ -935,7 +1025,21 @@ M3C_ERROR __M3C_ASM_lexString(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
                 return M3C_ERROR_OOM;
             return M3C_ERROR_OK;
 
+        } else if (status == M3C_ERROR_OK && cp == '\\') {
+            /* \: start of escape sequence */
+
+            status = __M3C_ASM_lexEscapeSequence(lexer, token);
+            if (status != M3C_ERROR_OK)
+                return status;
+            continue;
+        } else if (status == M3C_ERROR_OK && M3C_InRange_PRINTABLE(cp)) {
+            /* any printable except `\` or `"` */
+
+            ADVANCE;
+            continue;
         } else if (status == M3C_ERROR_EOF || (status == M3C_ERROR_OK && (cp == '\n' || cp == '\r'))) {
+            /* EOF, \n, or \r: EOT (with diagnostic) */
+
             DIAG_START_FROM_TOKEN(&diagUnterminatedStringLiteral, token);
             DIAG_END(&diagUnterminatedStringLiteral);
 
@@ -953,10 +1057,8 @@ M3C_ERROR __M3C_ASM_lexString(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
         } else {
             /**
              * NOTE: (status == INVALID_ENCODING) OR (status == OK and cp !=
-             *   1. [0-9A-Za-z]
-             *   2. '"'
-             *   3. EOL
-             *   4. '\\'
+             *   1. any printable
+             *   2. EOL
              * )
              */
 
