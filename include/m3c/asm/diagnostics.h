@@ -86,8 +86,24 @@ typedef enum __tagM3C_ASM_DiagnosticId {
      * \brief Invalid character(s) in string literal.
      *
      * \details #M3C_ASM_lex emits this diagnostic when trying to lex a \ref
-     * M3C_ASM_TOKEN_KIND_STRING "STRING" token and a sequence of invalid characters is encountered.
-     * Only `[0-9A-Za-z]` are valid characters for string literal.
+     * M3C_ASM_TOKEN_KIND_STRING "STRING" token and a sequence of invalid elements is encountered.
+     * Each element of string can be:
+     * + a printable character (`[ -~]`) except `"` and `\` characters
+     * + an escape sequences
+     *
+     * Escape sequences:
+     * + `\xN`, where N is one or two hexadecimal digits - arbitrary number of hexadecimal digits
+     * + `\'` - byte 0x27
+     * + `\"` - byte 0x22
+     * + `\?` - byte 0x3f
+     * + `\\` - byte 0x5c
+     * + `\a` - byte 0x07
+     * + `\b` - byte 0x08
+     * + `\f` - byte 0x0c
+     * + `\n` - byte 0x0a
+     * + `\r` - byte 0x0d
+     * + `\t` - byte 0x09
+     * + `\v` - byte 0x0b
      *
      * \warning Diagnostics with this id may point to source code containing non-ASCII characters
      * and invalid byte sequence.
@@ -108,7 +124,36 @@ typedef enum __tagM3C_ASM_DiagnosticId {
      * \note If the source code pointed to by the diagnostic contains invalid byte sequence,
      * \ref M3C_ASM_DIAGNOSTIC_ID_INVALID_ENCODING "INVALID_ENCODING" diagnostic(s) are generated.
      */
-    M3C_ASM_DIAGNOSTIC_ID_UNTERMINATED_STRING_LITERAL
+    M3C_ASM_DIAGNOSTIC_ID_UNTERMINATED_STRING_LITERAL,
+    /**
+     * \brief Unknown escape sequence.
+     *
+     * \details #M3C_ASM_lex emits this diagnostic when trying to lex a \ref
+     * M3C_ASM_TOKEN_KIND_STRING "STRING" token and an unknown escape sequence is encountered.
+     *
+     * Known escape sequences:
+     * + `\xN`, where N is one or two hexadecimal digits - arbitrary number of hexadecimal digits
+     * + `\'` - byte 0x27
+     * + `\"` - byte 0x22
+     * + `\?` - byte 0x3f
+     * + `\\` - byte 0x5c
+     * + `\a` - byte 0x07
+     * + `\b` - byte 0x08
+     * + `\f` - byte 0x0c
+     * + `\n` - byte 0x0a
+     * + `\r` - byte 0x0d
+     * + `\t` - byte 0x09
+     * + `\v` - byte 0x0b
+     */
+    M3C_ASM_DIAGNOSTIC_ID_UNKNOWN_ESCAPE_SEQUENCE,
+    /**
+     * \brief `\x` used with no following hex digits.
+     *
+     * \details #M3C_ASM_lex emits this diagnostic when trying to lex a \ref
+     * M3C_ASM_TOKEN_KIND_STRING "STRING" token and `\x` is used without following hexadecimal
+     * digits. See #M3C_ASM_DIAGNOSTIC_ID_UNKNOWN_ESCAPE_SEQUENCE for all escape sequences.
+     */
+    M3C_ASM_DIAGNOSTIC_ID_X_USED_WITH_NO_FOLLOWING_HEX_DIGITS
 } M3C_ASM_DiagnosticId;
 
 /**
