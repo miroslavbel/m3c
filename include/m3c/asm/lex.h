@@ -117,11 +117,11 @@ typedef enum __tagM3C_ASM_TokenKind {
     /**
      * \brief Left shift (`<<`).
      */
-    M3C_ASM_TOKEN_KIND_LTLT = 18,
+    M3C_ASM_TOKEN_KIND_LESSLESS = 18,
     /**
      * \brief Right shift (`>>`).
      */
-    M3C_ASM_TOKEN_KIND_GTGT = 19,
+    M3C_ASM_TOKEN_KIND_GREATERGREATER = 19,
     /**
      * \brief `==`.
      */

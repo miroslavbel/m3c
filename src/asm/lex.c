@@ -53,15 +53,27 @@
  *
  * \details The lexer must point to the first character of the token.
  */
-#define TOK_START(token)                                                                           \
-    (token)->ptr = lexer->ptr;                                                                     \
-    (token)->start = lexer->pos
+#define TOK_START                                                                                  \
+    lexer->token.ptr = lexer->ptr;                                                                 \
+    lexer->token.start = lexer->pos
 /**
  * \brief Sets the end position of the token.
  *
  * \details The lexer must point to the next character after the token.
  */
-#define TOK_END(token) (token)->end = lexer->pos
+#define TOK_END lexer->token.end = lexer->pos
+/**
+ * \brief Sets the kind of the token.
+ */
+#define TOK_KIND(KIND) lexer->token.kind = KIND
+/**
+ * \brief Pushes the token.
+ *
+ * \return
+ * + M3C_ERROR_OK
+ * + M3C_ERROR_OOM - if failed to realloc
+ */
+#define TOK_PUSH M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, &lexer->token)
 
 /**
  * \brief Sets the diagnostic start position from the current lexer position.
@@ -74,8 +86,8 @@
 /**
  * \brief Sets the diagnostic start position from the token start position.
  */
-#define DIAG_START_FROM_TOKEN(diag, token)                                                         \
-    (diag)->data.ASM.start = (token)->start;                                                       \
+#define DIAG_START_FROM_TOKEN(diag)                                                                \
+    (diag)->data.ASM.start = lexer->token.start;                                                   \
     (diag)->data.ASM.hInclude = lexer->hInclude
 /**
  * \brief Sets the end position of the diagnostic.
@@ -203,6 +215,7 @@ typedef struct __tagM3C_ASM_Lexer {
     m3c_u8 const *bLast;
     M3C_ASM_Fragment *fragment;
     M3C_ASM_Fragment *fragmentLast;
+    M3C_ASM_Token token;
     M3C_ASM_Tokens *tokens;
     M3C_Diagnostics *diagnostics;
     M3C_hINCLUDE hInclude;
@@ -305,13 +318,12 @@ __M3C_ASM_lexWhile(
  * + (possible) \ref M3C_ASM_DIAGNOSTIC_ID_INVALID_ENCODING "INVALID_ENCODING"
  *
  * \param[in,out] lexer lexer
- * \param[in,out] token token
  * \return
  * + #M3C_ERROR_OK
  * + #M3C_ERROR_EOF - if EOF is reached
  * + #M3C_ERROR_OOM - if failed to push token or diagnostic
  */
-M3C_ERROR __M3C_ASM_lexUnrecognisedToken(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
+M3C_ERROR __M3C_ASM_lexUnrecognisedToken(M3C_ASM_Lexer *lexer) {
     VAR_DECL;
     M3C_Diagnostic diagInvalidToken;
     M3C_Diagnostic diagInvalidEncoding;
@@ -325,7 +337,7 @@ M3C_ERROR __M3C_ASM_lexUnrecognisedToken(M3C_ASM_Lexer *lexer, M3C_ASM_Token *to
     diagInvalidEncoding.severity = M3C_SEVERITY_ERROR;
     diagInvalidEncoding.info = &M3C_ASM_DIAGNOSTIC_INFO_INVALID_ENCODING;
 
-    DIAG_START_FROM_TOKEN(&diagInvalidToken, token);
+    DIAG_START_FROM_TOKEN(&diagInvalidToken);
 
     /* push diagnostic and save its index */
     unrecognizedTokenDiagIndex = lexer->diagnostics->vec.len;
@@ -392,10 +404,10 @@ M3C_ERROR __M3C_ASM_lexUnrecognisedToken(M3C_ASM_Lexer *lexer, M3C_ASM_Token *to
         ++lexer->diagnostics->errors;
     }
 
-    token->kind = M3C_ASM_TOKEN_KIND_UNRECOGNIZED;
-    TOK_END(token);
+    TOK_KIND(M3C_ASM_TOKEN_KIND_UNRECOGNIZED);
+    TOK_END;
 
-    if (M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, token) != M3C_ERROR_OK)
+    if (TOK_PUSH != M3C_ERROR_OK)
         return M3C_ERROR_OOM;
 
     /* NOTE: vector can be reallocated, so access only by index */
@@ -411,13 +423,12 @@ M3C_ERROR __M3C_ASM_lexUnrecognisedToken(M3C_ASM_Lexer *lexer, M3C_ASM_Token *to
  * + (possible) \ref M3C_ASM_DIAGNOSTIC_ID_INVALID_ENCODING "INVALID_ENCODING"
  *
  * \param[in,out] lexer lexer
- * \param[out]    token token
  * \return
  * + #M3C_ERROR_OK
  * + #M3C_ERROR_EOF - if EOF is reached
  * + #M3C_ERROR_OOM - if failed to push token or diagnostic
  */
-M3C_ERROR __M3C_ASM_lexCommentToken(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
+M3C_ERROR __M3C_ASM_lexCommentToken(M3C_ASM_Lexer *lexer) {
     VAR_DECL;
     M3C_Diagnostic diagInvalidEncoding;
 
@@ -459,10 +470,10 @@ M3C_ERROR __M3C_ASM_lexCommentToken(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) 
         ++lexer->diagnostics->errors;
     }
 
-    token->kind = M3C_ASM_TOKEN_KIND_COMMENT;
-    TOK_END(token);
+    TOK_KIND(M3C_ASM_TOKEN_KIND_COMMENT);
+    TOK_END;
 
-    if (M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, token) != M3C_ERROR_OK)
+    if (TOK_PUSH != M3C_ERROR_OK)
         return M3C_ERROR_OOM;
 
     return status;
@@ -475,24 +486,23 @@ M3C_ERROR __M3C_ASM_lexCommentToken(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) 
  * additional diagnostics. The goal is to only locate EOT and push the `token`.
  *
  * \param[in,out] lexer lexer
- * \param[in,out] token token
  * \return
  * + #M3C_ERROR_OK
  * + #M3C_ERROR_OOM - if failed to push token or diagnostic
  */
-M3C_ERROR __M3C_ASM_lexNumberUntilEnd(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
+M3C_ERROR __M3C_ASM_lexNumberUntilEnd(M3C_ASM_Lexer *lexer) {
     VAR_DECL;
 
-    token->kind = M3C_ASM_TOKEN_KIND_UNRECOGNIZED;
+    TOK_KIND(M3C_ASM_TOKEN_KIND_UNRECOGNIZED);
 
     /* NOTE: ignore status and n */
     __M3C_ASM_lexWhile(
         lexer, UNDERSCORE_DIGITS_LETTERS, UNDERSCORE_DIGITS_LETTERS_LEN, &n, M3C_ASM_Token_MAX_CLEN
     );
 
-    TOK_END(token);
+    TOK_END;
 
-    if (M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, token) != M3C_ERROR_OK)
+    if (TOK_PUSH != M3C_ERROR_OK)
         return M3C_ERROR_OOM;
     return M3C_ERROR_OK;
 }
@@ -509,13 +519,12 @@ M3C_ERROR __M3C_ASM_lexNumberUntilEnd(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token
  * "INVALID_DIGIT_FOR_THIS_BASE_PREFIX"
  *
  * \param[in,out] lexer     lexer
- * \param[in,out] token     token
  * \param         rangesLen one of the #UNDERSCORE_DIGITS lengths
  * \return
  * + #M3C_ERROR_OK
  * + #M3C_ERROR_OOM - if failed to push token or diagnostic
  */
-M3C_ERROR __M3C_ASM_lexNumberBody(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token, m3c_u8 rangesLen) {
+M3C_ERROR __M3C_ASM_lexNumberBody(M3C_ASM_Lexer *lexer, m3c_u8 rangesLen) {
     VAR_DECL;
 
     M3C_Diagnostic diagInvalidDigitForThisBasePrefix;
@@ -543,7 +552,7 @@ M3C_ERROR __M3C_ASM_lexNumberBody(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token, m3
         lexer, UNDERSCORE_DIGITS_LETTERS, UNDERSCORE_DIGITS_LETTERS_LEN, &n, M3C_ASM_Token_MAX_CLEN
     );
     if (n != 0) {
-        token->kind = M3C_ASM_TOKEN_KIND_UNRECOGNIZED;
+        TOK_KIND(M3C_ASM_TOKEN_KIND_UNRECOGNIZED);
 
         diagInvalidDigitForThisBasePrefix.data.ASM.end =
             diagInvalidDigitForThisBasePrefix.data.ASM.start;
@@ -555,11 +564,11 @@ M3C_ERROR __M3C_ASM_lexNumberBody(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token, m3
             return M3C_ERROR_OOM;
         ++lexer->diagnostics->errors;
     } else
-        token->kind = M3C_ASM_TOKEN_KIND_NUMBER;
+        TOK_KIND(M3C_ASM_TOKEN_KIND_NUMBER);
 
-    TOK_END(token);
+    TOK_END;
 
-    if (M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, token) != M3C_ERROR_OK)
+    if (TOK_PUSH != M3C_ERROR_OK)
         return M3C_ERROR_OOM;
     return M3C_ERROR_OK;
 }
@@ -580,7 +589,6 @@ M3C_ERROR __M3C_ASM_lexNumberBody(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token, m3
  * "LEADING_ZEROS_ARE_NOT_PERMITTED"
  *
  * \param[in,out] lexer                      lexer
- * \param[in,out] token                      token
  * \param         digitRangeLen              one of the #DIGITS lengths
  * \param         underscoreAndDigitRangeLen one of the #UNDERSCORE_DIGITS lengths
  * \return
@@ -588,8 +596,7 @@ M3C_ERROR __M3C_ASM_lexNumberBody(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token, m3
  * + #M3C_ERROR_OOM - if failed to push token or diagnostic
  */
 M3C_ERROR __M3C_ASM_lexNumberAfterPrefix(
-    M3C_ASM_Lexer *lexer, M3C_ASM_Token *token, m3c_u8 digitRangeLen,
-    m3c_u8 underscoreAndDigitRangeLen
+    M3C_ASM_Lexer *lexer, m3c_u8 digitRangeLen, m3c_u8 underscoreAndDigitRangeLen
 ) {
     VAR_DECL;
     M3C_Diagnostic diagUnknownBasePrefix;
@@ -631,7 +638,7 @@ M3C_ERROR __M3C_ASM_lexNumberAfterPrefix(
             return M3C_ERROR_OOM;
         ++lexer->diagnostics->errors;
 
-        return __M3C_ASM_lexNumberUntilEnd(lexer, token);
+        return __M3C_ASM_lexNumberUntilEnd(lexer);
 
     } else if (status == M3C_ERROR_OK && match(DIGITS_LETTERS, DIGITS_LETTERS_LEN, cp) && !match(DIGITS, digitRangeLen, cp)) {
         DIAG_START_FROM_LEXER(&diagInvalidDigitForThisBasePrefix);
@@ -644,10 +651,10 @@ M3C_ERROR __M3C_ASM_lexNumberAfterPrefix(
             return M3C_ERROR_OOM;
         ++lexer->diagnostics->errors;
 
-        return __M3C_ASM_lexNumberUntilEnd(lexer, token);
+        return __M3C_ASM_lexNumberUntilEnd(lexer);
 
     } else if ((status == M3C_ERROR_OK && !match(DIGITS, digitRangeLen, cp)) || status != M3C_ERROR_OK) {
-        DIAG_START_FROM_TOKEN(&diagNumberLiteralMustContainAtLeastOneDigit, token);
+        DIAG_START_FROM_TOKEN(&diagNumberLiteralMustContainAtLeastOneDigit);
         DIAG_END(&diagNumberLiteralMustContainAtLeastOneDigit);
 
         if (M3C_VEC_PUSH(
@@ -657,7 +664,7 @@ M3C_ERROR __M3C_ASM_lexNumberAfterPrefix(
             return M3C_ERROR_OOM;
         ++lexer->diagnostics->errors;
 
-        return __M3C_ASM_lexNumberUntilEnd(lexer, token);
+        return __M3C_ASM_lexNumberUntilEnd(lexer);
     }
 
     /**
@@ -667,7 +674,7 @@ M3C_ERROR __M3C_ASM_lexNumberAfterPrefix(
      * but we already handled case when '_' is located right after the base prefix so we can
      * just lexWhile `[_\d]*`.
      */
-    return __M3C_ASM_lexNumberBody(lexer, token, underscoreAndDigitRangeLen);
+    return __M3C_ASM_lexNumberBody(lexer, underscoreAndDigitRangeLen);
 }
 
 /**
@@ -688,13 +695,12 @@ M3C_ERROR __M3C_ASM_lexNumberAfterPrefix(
  * \warning It is not guaranteed to return #M3C_ERROR_EOF if EOF is reached after the token.
  *
  * \param[in,out] lexer lexer
- * \param[in,out] token token
  * \return
  * + #M3C_ERROR_OK - OK or EOF is reached
  * + #M3C_ERROR_EOF - if EOF is reached
  * + #M3C_ERROR_OOM - if failed to push token or diagnostic
  */
-M3C_ERROR __M3C_ASM_lexZero(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
+M3C_ERROR __M3C_ASM_lexZero(M3C_ASM_Lexer *lexer) {
     VAR_DECL;
     m3c_u8 digitsLen;
     m3c_u8 underscoreDigitsLen;
@@ -733,9 +739,9 @@ M3C_ERROR __M3C_ASM_lexZero(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
      */
     PEEK;
     if (status == M3C_ERROR_EOF) {
-        token->kind = M3C_ASM_TOKEN_KIND_NUMBER;
-        TOK_END(token);
-        if (M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, token) != M3C_ERROR_OK)
+        TOK_KIND(M3C_ASM_TOKEN_KIND_NUMBER);
+        TOK_END;
+        if (TOK_PUSH != M3C_ERROR_OK)
             return M3C_ERROR_OOM;
 
         return M3C_ERROR_EOF;
@@ -748,7 +754,7 @@ M3C_ERROR __M3C_ASM_lexZero(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
         underscoreDigitsLen = UNDERSCORE_DIGITS_LEN_BIN;
 
         ADVANCE;
-        return __M3C_ASM_lexNumberAfterPrefix(lexer, token, digitsLen, underscoreDigitsLen);
+        return __M3C_ASM_lexNumberAfterPrefix(lexer, digitsLen, underscoreDigitsLen);
     } else if (cp == 'o' || cp == 'O' || cp == 'q' || cp == 'Q') {
         /* octal */
 
@@ -756,7 +762,7 @@ M3C_ERROR __M3C_ASM_lexZero(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
         underscoreDigitsLen = UNDERSCORE_DIGITS_LEN_OCT;
 
         ADVANCE;
-        return __M3C_ASM_lexNumberAfterPrefix(lexer, token, digitsLen, underscoreDigitsLen);
+        return __M3C_ASM_lexNumberAfterPrefix(lexer, digitsLen, underscoreDigitsLen);
     } else if (cp == 'd' || cp == 'D') {
         /* decimal */
 
@@ -764,7 +770,7 @@ M3C_ERROR __M3C_ASM_lexZero(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
         underscoreDigitsLen = UNDERSCORE_DIGITS_LEN_DEC;
 
         ADVANCE;
-        return __M3C_ASM_lexNumberAfterPrefix(lexer, token, digitsLen, underscoreDigitsLen);
+        return __M3C_ASM_lexNumberAfterPrefix(lexer, digitsLen, underscoreDigitsLen);
     } else if (cp == 'x' || cp == 'X' || cp == 'h' || cp == 'H') {
         /* hex */
 
@@ -772,7 +778,7 @@ M3C_ERROR __M3C_ASM_lexZero(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
         underscoreDigitsLen = UNDERSCORE_DIGITS_LEN_HEX;
 
         ADVANCE;
-        return __M3C_ASM_lexNumberAfterPrefix(lexer, token, digitsLen, underscoreDigitsLen);
+        return __M3C_ASM_lexNumberAfterPrefix(lexer, digitsLen, underscoreDigitsLen);
     } else if ((cp >= '0' && cp <= '9') || cp == '_') {
         DIAG_START_FROM_LEXER(&diagLeadingZerosAreNotPermitted);
         ADVANCE;
@@ -784,7 +790,7 @@ M3C_ERROR __M3C_ASM_lexZero(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
             return M3C_ERROR_OOM;
         ++lexer->diagnostics->errors;
 
-        return __M3C_ASM_lexNumberUntilEnd(lexer, token);
+        return __M3C_ASM_lexNumberUntilEnd(lexer);
 
     } else if (M3C_InRange_LETTER(cp)) {
 
@@ -797,15 +803,15 @@ M3C_ERROR __M3C_ASM_lexZero(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
             return M3C_ERROR_OOM;
         ++lexer->diagnostics->errors;
 
-        return __M3C_ASM_lexNumberUntilEnd(lexer, token);
+        return __M3C_ASM_lexNumberUntilEnd(lexer);
 
     } else {
         /* it was decimal `0` and now the new token started or just whitespace
          * status == OK or INVALID_ENCODING */
-        token->kind = M3C_ASM_TOKEN_KIND_NUMBER;
-        TOK_END(token);
+        TOK_KIND(M3C_ASM_TOKEN_KIND_NUMBER);
+        TOK_END;
 
-        if (M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, token) != M3C_ERROR_OK)
+        if (TOK_PUSH != M3C_ERROR_OK)
             return M3C_ERROR_OOM;
         return M3C_ERROR_OK;
     }
@@ -821,12 +827,11 @@ M3C_ERROR __M3C_ASM_lexZero(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
  * + (possible) \ref M3C_ASM_DIAGNOSTIC_ID_INVALID_ENCODING "INVALID_ENCODING"
  *
  * \param[in,out] lexer lexer
- * \param[in,out] token token
  * \return
  * + #M3C_ERROR_OK - OK or EOF is reached
  * + #M3C_ERROR_OOM - if failed to push token or diagnostic
  */
-M3C_ERROR __M3C_ASM_lexStringInvalidCharacters(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
+M3C_ERROR __M3C_ASM_lexStringInvalidCharacters(M3C_ASM_Lexer *lexer) {
     VAR_DECL;
 
     M3C_Diagnostic diagInvalidCharacterInStringLiteral;
@@ -842,7 +847,7 @@ M3C_ERROR __M3C_ASM_lexStringInvalidCharacters(M3C_ASM_Lexer *lexer, M3C_ASM_Tok
     diagInvalidEncoding.severity = M3C_SEVERITY_ERROR;
     diagInvalidEncoding.info = &M3C_ASM_DIAGNOSTIC_INFO_INVALID_ENCODING;
 
-    token->kind = M3C_ASM_TOKEN_KIND_UNRECOGNIZED;
+    TOK_KIND(M3C_ASM_TOKEN_KIND_UNRECOGNIZED);
 
     DIAG_START_FROM_LEXER(&diagInvalidCharacterInStringLiteral);
 
@@ -904,12 +909,11 @@ M3C_ERROR __M3C_ASM_lexStringInvalidCharacters(M3C_ASM_Lexer *lexer, M3C_ASM_Tok
  * "X_USED_WITH_NO_FOLLOWING_HEX_DIGITS"
  *
  * \param[in,out] lexer lexer
- * \param[in,out] token token
  * \return
  * + #M3C_ERROR_OK - OK or EOF is reached
  * + #M3C_ERROR_OOM - if failed to push token or diagnostic
  */
-M3C_ERROR __M3C_ASM_lexEscapeSequence(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
+M3C_ERROR __M3C_ASM_lexEscapeSequence(M3C_ASM_Lexer *lexer) {
     VAR_DECL;
 
     M3C_Diagnostic diagUnknownEscapeSequence;
@@ -939,7 +943,7 @@ M3C_ERROR __M3C_ASM_lexEscapeSequence(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token
         PEEK; /* peek the first digit */
 
         if (status != M3C_ERROR_OK || (status == M3C_ERROR_OK && !M3C_InRange_DIGIT_HEX(cp))) {
-            token->kind = M3C_ASM_TOKEN_KIND_UNRECOGNIZED;
+            TOK_KIND(M3C_ASM_TOKEN_KIND_UNRECOGNIZED);
             DIAG_END(&diagXUsedWithNoFollowingHexDigits);
 
             if (M3C_VEC_PUSH(
@@ -994,20 +998,19 @@ M3C_ERROR __M3C_ASM_lexEscapeSequence(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token
  * \warning It is not guaranteed to return #M3C_ERROR_EOF if EOF is reached after the token.
  *
  * \param[in,out] lexer lexer
- * \param[in,out] token token
  * \return
  * + #M3C_ERROR_OK - OK or EOF is reached
  * + #M3C_ERROR_EOF - if EOF is reached
  * + #M3C_ERROR_OOM - if failed to push token or diagnostic
  */
-M3C_ERROR __M3C_ASM_lexString(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
+M3C_ERROR __M3C_ASM_lexString(M3C_ASM_Lexer *lexer) {
     VAR_DECL;
 
     M3C_Diagnostic diagUnterminatedStringLiteral;
     diagUnterminatedStringLiteral.severity = M3C_SEVERITY_WARNING;
     diagUnterminatedStringLiteral.info = &M3C_ASM_DIAGNOSTIC_INFO_UNTERMINATED_STRING_LITERAL;
 
-    token->kind = M3C_ASM_TOKEN_KIND_STRING;
+    TOK_KIND(M3C_ASM_TOKEN_KIND_STRING);
 
     PEEK; /* re-peek '"' */
     ADVANCE;
@@ -1019,16 +1022,16 @@ M3C_ERROR __M3C_ASM_lexString(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
             /* ": EOT */
 
             ADVANCE;
-            TOK_END(token);
+            TOK_END;
 
-            if (M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, token) != M3C_ERROR_OK)
+            if (TOK_PUSH != M3C_ERROR_OK)
                 return M3C_ERROR_OOM;
             return M3C_ERROR_OK;
 
         } else if (status == M3C_ERROR_OK && cp == '\\') {
             /* \: start of escape sequence */
 
-            status = __M3C_ASM_lexEscapeSequence(lexer, token);
+            status = __M3C_ASM_lexEscapeSequence(lexer);
             if (status != M3C_ERROR_OK)
                 return status;
             continue;
@@ -1040,7 +1043,7 @@ M3C_ERROR __M3C_ASM_lexString(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
         } else if (status == M3C_ERROR_EOF || (status == M3C_ERROR_OK && (cp == '\n' || cp == '\r'))) {
             /* EOF, \n, or \r: EOT (with diagnostic) */
 
-            DIAG_START_FROM_TOKEN(&diagUnterminatedStringLiteral, token);
+            DIAG_START_FROM_TOKEN(&diagUnterminatedStringLiteral);
             DIAG_END(&diagUnterminatedStringLiteral);
 
             if (M3C_VEC_PUSH(
@@ -1049,8 +1052,8 @@ M3C_ERROR __M3C_ASM_lexString(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
                 return M3C_ERROR_OOM;
             ++lexer->diagnostics->warnings;
 
-            TOK_END(token);
-            if (M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, token) != M3C_ERROR_OK)
+            TOK_END;
+            if (TOK_PUSH != M3C_ERROR_OK)
                 return M3C_ERROR_OOM;
             return status; /* can be OK and EOF */
 
@@ -1062,7 +1065,7 @@ M3C_ERROR __M3C_ASM_lexString(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
              * )
              */
 
-            status = __M3C_ASM_lexStringInvalidCharacters(lexer, token);
+            status = __M3C_ASM_lexStringInvalidCharacters(lexer);
             if (status != M3C_ERROR_OK)
                 return status;
 
@@ -1075,18 +1078,17 @@ M3C_ERROR __M3C_ASM_lexString(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
  * \brief Lexes the \ref M3C_ASM_TOKEN_KIND_SYMBOL "symbol" token.
  *
  * \param[in,out] lexer lexer
- * \param[in,out] token token
  * \return
  * + #M3C_ERROR_OK - OK or EOF is reached
  * + #M3C_ERROR_OOM - if failed to push token or diagnostic
  */
-M3C_ERROR __M3C_ASM_lexSymbol(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
+M3C_ERROR __M3C_ASM_lexSymbol(M3C_ASM_Lexer *lexer) {
     VAR_DECL;
 
     PEEK; /* re-peek first code point - [_A-Za-z] */
     ADVANCE;
 
-    token->kind = M3C_ASM_TOKEN_KIND_SYMBOL;
+    TOK_KIND(M3C_ASM_TOKEN_KIND_SYMBOL);
 
     M3C_LOOP {
         PEEK;
@@ -1099,14 +1101,14 @@ M3C_ERROR __M3C_ASM_lexSymbol(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
 
         break;
     }
-    TOK_END(token);
+    TOK_END;
 
-    return M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, token);
+    return TOK_PUSH;
 }
 
 #define ONE_CHAR_TOKEN(ch, tokenKind)                                                              \
     (cp == (ch)) {                                                                                 \
-        token.kind = (tokenKind);                                                                  \
+        TOK_KIND(tokenKind);                                                                       \
         goto one_char_token;                                                                       \
     }
 
@@ -1123,7 +1125,6 @@ M3C_ERROR __M3C_ASM_lexSymbol(M3C_ASM_Lexer *lexer, M3C_ASM_Token *token) {
  */
 M3C_ERROR __M3C_ASM_lexNextToken(M3C_ASM_Lexer *lexer) {
     VAR_DECL;
-    M3C_ASM_Token token;
 
     /* skip whitespaces (only space and '\t') */
     M3C_LOOP {
@@ -1135,25 +1136,25 @@ M3C_ERROR __M3C_ASM_lexNextToken(M3C_ASM_Lexer *lexer) {
             break;
         ADVANCE;
     }
-    TOK_START(&token);
+    TOK_START;
 
     if (cp == '\n') {
-        token.kind = M3C_ASM_TOKEN_KIND_EOL;
+        TOK_KIND(M3C_ASM_TOKEN_KIND_EOL);
         ADVANCE_NL;
-        TOK_END(&token);
-        return M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, &token);
+        TOK_END;
+        return TOK_PUSH;
     } else if (cp == '\r') {
-        token.kind = M3C_ASM_TOKEN_KIND_EOL;
+        TOK_KIND(M3C_ASM_TOKEN_KIND_EOL);
         ADVANCE;
         PEEK;
         if (status == M3C_ERROR_OK && cp == '\n') { /* \r ~ \n */
             ADVANCE_NL;
-            TOK_END(&token);
-            return M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, &token);
+            TOK_END;
+            return TOK_PUSH;
         } else {
             __ADVANCE_ONLY_POS_NL;
-            TOK_END(&token);
-            if (M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, &token) != M3C_ERROR_OK)
+            TOK_END;
+            if (TOK_PUSH != M3C_ERROR_OK)
                 return M3C_ERROR_OOM;
             return status;
         }
@@ -1161,27 +1162,27 @@ M3C_ERROR __M3C_ASM_lexNextToken(M3C_ASM_Lexer *lexer) {
         ADVANCE;
         PEEK;
         if (status == M3C_ERROR_OK && cp == '=') {
-            token.kind = M3C_ASM_TOKEN_KIND_EXCLAIMEQUAL;
+            TOK_KIND(M3C_ASM_TOKEN_KIND_EXCLAIMEQUAL);
             goto one_char_token;
         } else {
-            token.kind = M3C_ASM_TOKEN_KIND_EXCLAIM;
-            TOK_END(&token);
-            return M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, &token);
+            TOK_KIND(M3C_ASM_TOKEN_KIND_EXCLAIM);
+            TOK_END;
+            return TOK_PUSH;
         }
     } else if (cp == '"')
-        return __M3C_ASM_lexString(lexer, &token);
+        return __M3C_ASM_lexString(lexer);
     else if
         ONE_CHAR_TOKEN('%', M3C_ASM_TOKEN_KIND_PERCENT)
     else if (cp == '&') {
         ADVANCE;
         PEEK;
         if (status == M3C_ERROR_OK && cp == '&') {
-            token.kind = M3C_ASM_TOKEN_KIND_AMPAMP;
+            TOK_KIND(M3C_ASM_TOKEN_KIND_AMPAMP);
             goto one_char_token;
         } else {
-            token.kind = M3C_ASM_TOKEN_KIND_AMP;
-            TOK_END(&token);
-            return M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, &token);
+            TOK_KIND(M3C_ASM_TOKEN_KIND_AMP);
+            TOK_END;
+            return TOK_PUSH;
         }
     } else if
         ONE_CHAR_TOKEN('(', M3C_ASM_TOKEN_KIND_L_PAREN)
@@ -1198,75 +1199,77 @@ M3C_ERROR __M3C_ASM_lexNextToken(M3C_ASM_Lexer *lexer) {
     else if
         ONE_CHAR_TOKEN('/', M3C_ASM_TOKEN_KIND_SLASH)
     else if (cp == '0')
-        return __M3C_ASM_lexZero(lexer, &token);
+        return __M3C_ASM_lexZero(lexer);
     else if (cp >= '1' && cp <= '9') {
         ADVANCE;
-        return __M3C_ASM_lexNumberBody(lexer, &token, UNDERSCORE_DIGITS_LEN_DEC);
+        return __M3C_ASM_lexNumberBody(lexer, UNDERSCORE_DIGITS_LEN_DEC);
     } else if
         ONE_CHAR_TOKEN (':', M3C_ASM_TOKEN_KIND_COLON)
     else if (cp == ';')
-        return __M3C_ASM_lexCommentToken(lexer, &token);
+        return __M3C_ASM_lexCommentToken(lexer);
     else if (cp == '<') {
         ADVANCE;
         PEEK;
         if (status == M3C_ERROR_OK && cp == '<') {
-            token.kind = M3C_ASM_TOKEN_KIND_LTLT;
+            TOK_KIND(M3C_ASM_TOKEN_KIND_LESSLESS);
             goto one_char_token;
         } else if (status == M3C_ERROR_OK && cp == '=') {
-            token.kind = M3C_ASM_TOKEN_KIND_LESSEQUAL;
+            TOK_KIND(M3C_ASM_TOKEN_KIND_LESSEQUAL);
             goto one_char_token;
         } else {
-            token.kind = M3C_ASM_TOKEN_KIND_LESS;
-            TOK_END(&token);
-            return M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, &token);
+            TOK_KIND(M3C_ASM_TOKEN_KIND_LESS);
+            TOK_END;
+            return TOK_PUSH;
         }
     } else if (cp == '=') {
         ADVANCE;
         PEEK;
         if (status == M3C_ERROR_OK && cp == '=') {
-            token.kind = M3C_ASM_TOKEN_KIND_EQUALEQUAL;
+            TOK_KIND(M3C_ASM_TOKEN_KIND_EQUALEQUAL);
             goto one_char_token;
         } else
-            return __M3C_ASM_lexUnrecognisedToken(lexer, &token);
+            return __M3C_ASM_lexUnrecognisedToken(lexer);
     } else if (cp == '>') {
         ADVANCE;
         PEEK;
         if (status == M3C_ERROR_OK && cp == '>') {
-            token.kind = M3C_ASM_TOKEN_KIND_GTGT;
+            TOK_KIND(M3C_ASM_TOKEN_KIND_GREATERGREATER);
             goto one_char_token;
         } else if (status == M3C_ERROR_OK && cp == '=') {
-            token.kind = M3C_ASM_TOKEN_KIND_GREATEREQUAL;
+            TOK_KIND(M3C_ASM_TOKEN_KIND_GREATEREQUAL);
             goto one_char_token;
         } else {
-            token.kind = M3C_ASM_TOKEN_KIND_GREATER;
-            TOK_END(&token);
-            return M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, &token);
+            TOK_KIND(M3C_ASM_TOKEN_KIND_GREATER);
+            TOK_END;
+            return TOK_PUSH;
         }
-    } else if ONE_CHAR_TOKEN ('?', M3C_ASM_TOKEN_KIND_QUESTION)
-        else if (cp == '_' || M3C_InRange_LETTER(cp)) return __M3C_ASM_lexSymbol(lexer, &token);
+    } else if
+        ONE_CHAR_TOKEN('?', M3C_ASM_TOKEN_KIND_QUESTION)
+    else if (cp == '_' || M3C_InRange_LETTER(cp))
+        return __M3C_ASM_lexSymbol(lexer);
     else if
         ONE_CHAR_TOKEN('^', M3C_ASM_TOKEN_KIND_CARET)
     else if (cp == '|') {
         ADVANCE;
         PEEK;
         if (status == M3C_ERROR_OK && cp == '|') {
-            token.kind = M3C_ASM_TOKEN_KIND_PIPEPIPE;
+            TOK_KIND(M3C_ASM_TOKEN_KIND_PIPEPIPE);
             goto one_char_token;
         } else {
-            token.kind = M3C_ASM_TOKEN_KIND_PIPE;
-            TOK_END(&token);
-            return M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, &token);
+            TOK_KIND(M3C_ASM_TOKEN_KIND_PIPE);
+            TOK_END;
+            return TOK_PUSH;
         }
     } else if
         ONE_CHAR_TOKEN('~', M3C_ASM_TOKEN_KIND_TILDE)
     else
-        return __M3C_ASM_lexUnrecognisedToken(lexer, &token);
+        return __M3C_ASM_lexUnrecognisedToken(lexer);
 
 /* Not for EOL */
 one_char_token:
     ADVANCE;
-    TOK_END(&token);
-    return M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, &token);
+    TOK_END;
+    return TOK_PUSH;
 }
 
 M3C_ERROR M3C_ASM_lex(M3C_ASM_Document *document) {
