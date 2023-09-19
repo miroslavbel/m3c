@@ -1211,7 +1211,7 @@ M3C_ERROR __M3C_ASM_lexNextToken(M3C_ASM_Lexer *lexer) {
         ADVANCE;
         PEEK;
         if (status == M3C_ERROR_OK && cp == '<') {
-            TOK_KIND(M3C_ASM_TOKEN_KIND_LTLT);
+            TOK_KIND(M3C_ASM_TOKEN_KIND_LESSLESS);
             goto one_char_token;
         } else if (status == M3C_ERROR_OK && cp == '=') {
             TOK_KIND(M3C_ASM_TOKEN_KIND_LESSEQUAL);
@@ -1233,7 +1233,7 @@ M3C_ERROR __M3C_ASM_lexNextToken(M3C_ASM_Lexer *lexer) {
         ADVANCE;
         PEEK;
         if (status == M3C_ERROR_OK && cp == '>') {
-            TOK_KIND(M3C_ASM_TOKEN_KIND_GTGT);
+            TOK_KIND(M3C_ASM_TOKEN_KIND_GREATERGREATER);
             goto one_char_token;
         } else if (status == M3C_ERROR_OK && cp == '=') {
             TOK_KIND(M3C_ASM_TOKEN_KIND_GREATEREQUAL);
