@@ -2,12 +2,15 @@
 
 #include <m3c/common/macros.h>
 #include <m3c/common/utf8.h>
+#include <m3c/rt/alloc.h>
 #include <m3c/asm/diagnostics_info.h>
 #include <m3c/asm/preproc.h>
 
 #define __ADVANCE_ONLY_PTR lexer->ptr += cpLen
+#define __ADVANCE_ONLY_PTR2 lexer->ptr2 += cpLen
 
 #define __ADVANCE_ONLY_POS ++lexer->pos.character
+#define __ADVANCE_ONLY_POS2 ++lexer->pos2.character
 #define __ADVANCE_ONLY_POS_NL                                                                      \
     ++lexer->pos.line;                                                                             \
     lexer->pos.character = 0
@@ -32,6 +35,14 @@
 #define PEEK status = __M3C_ASM_Lexer_peek(lexer, &cp, &cpLen)
 
 /**
+ * @brief As \ref PEEK "PEEK" but is used to reread document using `ptr2`, `pos2`, `fragment2`.
+ */
+#define PEEK2                                                                                      \
+    status = __M3C_ASM_Lexer_peek2(                                                                \
+        &lexer->ptr2, &lexer->pos2, &lexer->fragment2, lexer->fragmentLast, &cp, &cpLen            \
+    )
+
+/**
  * \brief Moves the lexer forward, assuming the lexer doesn't point to a newline character.
  *
  * \warning Requires macro #PEEK to be called before it.
@@ -39,6 +50,15 @@
 #define ADVANCE                                                                                    \
     __ADVANCE_ONLY_PTR;                                                                            \
     __ADVANCE_ONLY_POS
+/**
+ * \brief As \ref ADVANCE "ADVANCE" but is used to reread document using `ptr2`, `pos2`,
+ * `fragment2`.
+ *
+ * \warning Requires macro #PEEK2 to be called before it.
+ */
+#define ADVANCE2                                                                                   \
+    __ADVANCE_ONLY_PTR2;                                                                           \
+    __ADVANCE_ONLY_POS2
 /**
  * \brief Moves the lexer forward, assuming the lexer points to a newline character.
  *
@@ -55,7 +75,12 @@
  */
 #define TOK_START                                                                                  \
     lexer->token.ptr = lexer->ptr;                                                                 \
-    lexer->token.start = lexer->pos
+    lexer->token.start = lexer->pos;                                                               \
+    lexer->token.lexeme.hStr = 0;                                                                  \
+    /* save info for token rereading */                                                            \
+    lexer->ptr2 = lexer->ptr;                                                                      \
+    lexer->pos2 = lexer->pos;                                                                      \
+    lexer->fragment2 = lexer->fragment
 /**
  * \brief Sets the end position of the token.
  *
@@ -74,6 +99,15 @@
  * + M3C_ERROR_OOM - if failed to realloc
  */
 #define TOK_PUSH M3C_VEC_PUSH(M3C_ASM_Token, lexer->tokens, &lexer->token)
+
+/**
+ * \brief Push string to the preproc's stringPool.
+ *
+ * \return
+ * + M3C_ERROR_OK
+ * + M3C_ERROR_OOM - if failed to realloc
+ */
+#define STR_PUSH(str) M3C_VEC_PUSH(M3C_ASM_CachedString, lexer->stringPool, (str))
 
 /**
  * \brief Sets the diagnostic start position from the current lexer position.
@@ -215,10 +249,29 @@ typedef struct __tagM3C_ASM_Lexer {
     m3c_u8 const *bLast;
     M3C_ASM_Fragment *fragment;
     M3C_ASM_Fragment *fragmentLast;
+    /**
+     * \brief Actual token.
+     */
     M3C_ASM_Token token;
     M3C_ASM_Tokens *tokens;
     M3C_Diagnostics *diagnostics;
+    /**
+     * \brief Pointer to the first byte of the actual token.
+     */
+    m3c_u8 const *ptr2;
+    /**
+     * \brief Position of the first character of the actual token.
+     */
+    M3C_ASM_Position pos2;
+    /**
+     * \brief Fragment, where the actual token has started.
+     */
+    M3C_ASM_Fragment *fragment2;
     M3C_hINCLUDE hInclude;
+    /**
+     * \brief Preproc's stringPool.
+     */
+    M3C_ASM_StringPool *stringPool;
 } M3C_ASM_Lexer;
 
 /**
@@ -270,6 +323,32 @@ M3C_ERROR __M3C_ASM_Lexer_peek(M3C_ASM_Lexer *lexer, M3C_UCP *cp, m3c_size_t *cp
     lexer->ptr = lexer->fragment->bFirst;
     lexer->pos = lexer->fragment->pos;
     return M3C_UTF8GetASCIICodepointWithLen(lexer->ptr, lexer->fragment->bLast, cp, cpLen);
+}
+
+/**
+TODO
+ */
+M3C_ERROR __M3C_ASM_Lexer_peek2(
+    const m3c_u8 **ptr, M3C_ASM_Position *pos, M3C_ASM_Fragment **fragment,
+    const M3C_ASM_Fragment *lastFragment, M3C_UCP *cp, m3c_size_t *cpLen
+) {
+    if (*ptr <= (*fragment)->bLast)
+        /* if it's not the end of the fragment just read the next char */
+        return M3C_UTF8GetASCIICodepointWithLen(*ptr, (*fragment)->bLast, cp, cpLen);
+
+    /* looking for the next non-empty fragment */
+    M3C_LOOP {
+        if (*fragment == lastFragment)
+            return M3C_ERROR_EOF;
+        ++(*fragment);
+
+        if ((*fragment)->bLast != M3C_NULL)
+            break;
+    }
+
+    *ptr = (*fragment)->bFirst;
+    *pos = (*fragment)->pos;
+    return M3C_UTF8GetASCIICodepointWithLen(*ptr, (*fragment)->bLast, cp, cpLen);
 }
 
 /**
@@ -1075,12 +1154,59 @@ M3C_ERROR __M3C_ASM_lexString(M3C_ASM_Lexer *lexer) {
 }
 
 /**
+ * \brief Fills the lexeme of \ref M3C_ASM_TOKEN_KIND_SYMBOL "symbol" token.
+ *
+ * \param[in,out] lexer lexer
+ * \return
+ * + #M3C_ERROR_OK
+ * + #M3C_ERROR_OOM - if failed to push string to stringPool
+ */
+M3C_ERROR __M3C_ASM_lexemizeSymbol(M3C_ASM_Lexer *lexer) {
+    VAR_DECL;
+
+    m3c_u8 *str;
+    m3c_u8 *strPtr;
+    M3C_ASM_CachedString cachedString;
+
+    /* NOTE: we can allocate more then we need here if token is splitted by line continuation
+     * sequence(s) */
+    str = m3c_malloc(sizeof(m3c_u8) * (lexer->ptr - lexer->ptr2));
+    if (!str)
+        return M3C_ERROR_OOM;
+    strPtr = str;
+
+    /* read string from document to str */
+    while (lexer->ptr2 < lexer->ptr) {
+        PEEK2;
+
+        /* NOTE: only ASCII chars can be in this token,
+         *   1. so we know that `cp` <= 127
+         *   2. so we need only one byte to represent `cp` in UTF-8 in stringPool
+         */
+        *strPtr = (m3c_u8)cp;
+        ++strPtr;
+
+        ADVANCE2;
+    }
+
+    cachedString.ptr = str;
+    cachedString.len = (m3c_u32)(strPtr - str);
+
+    lexer->token.lexeme.hStr = (m3c_u32)lexer->stringPool->len;
+
+    if (STR_PUSH(&cachedString) != M3C_ERROR_OK)
+        return M3C_ERROR_OOM;
+
+    return M3C_ERROR_OK;
+}
+
+/**
  * \brief Lexes the \ref M3C_ASM_TOKEN_KIND_SYMBOL "symbol" token.
  *
  * \param[in,out] lexer lexer
  * \return
  * + #M3C_ERROR_OK - OK or EOF is reached
- * + #M3C_ERROR_OOM - if failed to push token or diagnostic
+ * + #M3C_ERROR_OOM - if failed to push token, diagnostic, or lexeme
  */
 M3C_ERROR __M3C_ASM_lexSymbol(M3C_ASM_Lexer *lexer) {
     VAR_DECL;
@@ -1103,6 +1229,10 @@ M3C_ERROR __M3C_ASM_lexSymbol(M3C_ASM_Lexer *lexer) {
     }
     TOK_END;
 
+    status = __M3C_ASM_lexemizeSymbol(lexer);
+    if (status != M3C_ERROR_OK)
+        return status;
+
     return TOK_PUSH;
 }
 
@@ -1121,7 +1251,7 @@ M3C_ERROR __M3C_ASM_lexSymbol(M3C_ASM_Lexer *lexer) {
  * \return
  * + #M3C_ERROR_OK
  * + #M3C_ERROR_EOF - if EOF is reached
- * + #M3C_ERROR_OOM - failed to push token or diagnostic
+ * + #M3C_ERROR_OOM - if failed to push token, diagnostic, or lexeme
  */
 M3C_ERROR __M3C_ASM_lexNextToken(M3C_ASM_Lexer *lexer) {
     VAR_DECL;
@@ -1272,9 +1402,16 @@ one_char_token:
     return TOK_PUSH;
 }
 
-M3C_ERROR M3C_ASM_lex(M3C_ASM_Document *document) {
+M3C_ERROR M3C_ASM_lex(M3C_ASM_PreProc *preproc, m3c_u32 hDocument) {
+    M3C_ASM_Document *document;
     M3C_ASM_Lexer lexer;
     M3C_ERROR res;
+
+    if (hDocument >= preproc->documents.len)
+    return M3C_ERROR_BAD_HANDLE;
+
+    lexer.stringPool = &preproc->stringPool;
+    document = &preproc->documents.data[hDocument];
 
     if (document->fragments.len == 0)
         return M3C_ERROR_OK;

@@ -23,6 +23,8 @@ typedef m3c_u16 M3C_hINCLUDE;
 
 typedef struct __tagM3C_ASM_Document M3C_ASM_Document;
 
+typedef struct __tagM3C_ASM_PreProc M3C_ASM_PreProc;
+
 /***************************************************************************************************
  * some common types for this module
  **************************************************************************************************/

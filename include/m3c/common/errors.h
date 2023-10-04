@@ -20,7 +20,11 @@ typedef enum __tagM3C_ERROR {
     /**
      * \brief Invalid encoding.
      */
-    M3C_ERROR_INVALID_ENCODING = 3
+    M3C_ERROR_INVALID_ENCODING = 3,
+    /**
+     * \brief There is no object corresponding to this handle.
+     */
+    M3C_ERROR_BAD_HANDLE = 4
 } M3C_ERROR;
 
 #endif /* _M3C_INCGUARD_ERRORS_H */
