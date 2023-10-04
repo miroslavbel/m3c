@@ -2,6 +2,7 @@
 #define _M3C_INCGUARD_ASM_PREPROC_H
 
 #include <m3c/common/types.h>
+#include <m3c/common/coltypes.h>
 #include <m3c/common/errors.h>
 #include <m3c/asm/types.h>
 #include <m3c/core/diagnostics.h>
@@ -86,6 +87,42 @@ struct __tagM3C_ASM_Document {
      * explicitly by the user itself as an entry document).
      */
     M3C_hINCLUDE hInclude;
+};
+
+/**
+ * \brief Describes a string in the string pool.
+ */
+typedef struct __tagM3C_ASM_CachedString {
+    /**
+     * \brief Pointer to the string (in UTF-8).
+     *
+     * \warning The string is not null-terminated.
+     */
+    m3c_u8 *ptr;
+    /**
+     * \brief The byte length of the string.
+     *
+     * \warning The string is not null-terminated. The UTF-8 is used.
+     */
+    m3c_u32 len;
+} M3C_ASM_CachedString;
+
+typedef M3C_VEC(M3C_ASM_CachedString) M3C_ASM_StringPool;
+
+/**
+ * \brief Preprocessor.
+ */
+struct __tagM3C_ASM_PreProc {
+    /**
+     * \brief List of source code documents.
+     */
+    M3C_VEC(M3C_ASM_Document) documents;
+    /**
+     * \brief String pool.
+     *
+     * Used to store token lexemes.
+     */
+    M3C_ASM_StringPool stringPool;
 };
 
 /**

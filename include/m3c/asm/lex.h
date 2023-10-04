@@ -182,6 +182,23 @@ typedef enum __tagM3C_ASM_TokenKind {
 #define M3C_ASM_Token_MAX_CLEN ((m3c_u32)M3C_U16_MAX * (m3c_u32)M3C_U16_MAX)
 
 /**
+ * \brief Value of the token.
+ */
+typedef union __tagM3C_ASM_Lexeme {
+    /**
+     * \brief Integer value.
+     */
+    m3c_u32 num;
+    /**
+     * \brief Handle of the string lexeme.
+     *
+     * \note This handle in the current implementation corresponds to the index in \ref
+     * __tagM3C_ASM_PreProc::stringPool "preproc's string pool".
+     */
+    m3c_u32 hStr;
+} M3C_ASM_Lexeme;
+
+/**
  * \brief Token.
  *
  * \note Only tokens of kind #M3C_ASM_TOKEN_KIND_UNRECOGNIZED and #M3C_ASM_TOKEN_KIND_COMMENT can
@@ -198,6 +215,13 @@ struct __tagM3C_ASM_Token {
      * token bytes.
      */
     m3c_u8 const *ptr;
+    /**
+     * \brief Parsed lexeme of the token.
+     *
+     * \warning Only tokens of the following types have their own lexemes:
+     * + \ref M3C_ASM_TOKEN_KIND_SYMBOL "SYMBOL"
+     */
+    M3C_ASM_Lexeme lexeme;
     /**
      * \brief Token kind.
      */
@@ -221,11 +245,13 @@ struct __tagM3C_ASM_Token {
  * \details Fills \ref M3C_ASM_Document::tokens "tokens" and \ref M3C_ASM_Document::diagnostics
  * "diagnostics" of the document.
  *
- * \param[in,out] document
+ * \param[in,out] preproc   preprocessor
+ * \param         hDocument document handle (the document index in `preproc::documents`)
+ *
  * \return
  * + #M3C_ERROR_OK
- * + #M3C_ERROR_OOM - if failed to push token or diagnostic
+ * + #M3C_ERROR_OOM - if failed to push token, diagnostic, or lexeme
  */
-M3C_ERROR M3C_ASM_lex(M3C_ASM_Document *document);
+M3C_ERROR M3C_ASM_lex(M3C_ASM_PreProc *preproc, m3c_u32 hDocument);
 
 #endif /* _M3C_INCGUARD_ASM_LEX_H */
