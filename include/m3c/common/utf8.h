@@ -81,4 +81,20 @@ M3C_ERROR M3C_UTF8GetASCIICodepointWithLen(
     const m3c_u8 *ptr, const m3c_u8 *last, M3C_UCP *cp, m3c_size_t *len
 );
 
+/**
+ * \brief Writes the specified code point to the buffer.
+ *
+ * \param[out] ptr  a pointer to the first code unit to be written
+ * \param      last a pointer to the last code unit in the buffer. Can be `NULL` if the buffer is
+ * empty
+ * \param      cp   a code point
+ * \param[out] len  writes here the code point length in code units
+ * \return
+ * + #M3C_ERROR_OK
+ * + #M3C_ERROR_EOF - if the buffer size is too small to write a code point into it
+ * + #M3C_ERROR_INVALID_ENCODING - if code point is greater than `U+10FFFF`
+ */
+M3C_ERROR
+M3C_UTF8WriteCodepointWithLen(m3c_u8 *ptr, const m3c_u8 *last, M3C_UCP cp, m3c_size_t *len);
+
 #endif /* _M3C_INCGUARD_UTF8_H */
