@@ -156,3 +156,50 @@ M3C_ERROR M3C_UTF8GetASCIICodepointWithLen(
 
     return M3C_ERROR_INVALID_ENCODING;
 }
+
+M3C_ERROR
+M3C_UTF8WriteCodepointWithLen(m3c_u8 *ptr, const m3c_u8 *last, M3C_UCP cp, m3c_size_t *len) {
+
+    if (last < ptr)
+        return M3C_ERROR_EOF;
+
+    if (cp < 0x80) {
+        /* NOTE: buffer has a length equal to at least 1, so the check would be redundant */
+        *len = 1;
+
+        ptr[0] = (m3c_u8)cp;
+        return M3C_ERROR_OK;
+
+    } else if (cp < 0x800) {
+        if (last - ptr < 1)
+            return M3C_ERROR_EOF;
+        *len = 2;
+
+        ptr[0] = (cp >> 6 & 0x1F) + 0xC0;
+        ptr[1] = (cp >> 0 & 0x3F) + 0x80;
+        return M3C_ERROR_OK;
+
+    } else if (cp < 0x10000) {
+        if (last - ptr < 2)
+            return M3C_ERROR_EOF;
+        *len = 3;
+
+        ptr[0] = (cp >> 12 & 0xF) + 0xE0;
+        ptr[1] = (cp >> 6 & 0x3F) + 0x80;
+        ptr[2] = (cp >> 0 & 0x3F) + 0x80;
+        return M3C_ERROR_OK;
+
+    } else if (cp < 0x110000) {
+        if (last - ptr < 3)
+            return M3C_ERROR_EOF;
+        *len = 4;
+
+        ptr[0] = (cp >> 18 & 0xF) + 0xF0;
+        ptr[1] = (cp >> 12 & 0x3F) + 0x80;
+        ptr[2] = (cp >> 6 & 0x3F) + 0x80;
+        ptr[3] = (cp >> 0 & 0x3F) + 0x80;
+        return M3C_ERROR_OK;
+
+    } else
+        return M3C_ERROR_INVALID_ENCODING;
+}
