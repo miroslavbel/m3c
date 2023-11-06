@@ -82,6 +82,23 @@ M3C_ERROR M3C_UTF8GetASCIICodepointWithLen(
 );
 
 /**
+ * \brief Decodes the first code point in the buffer.
+ *
+ * \param[in]  ptr  a pointer to first code unit in buffer
+ * \param[in]  last a pointer to the last code unit in the buffer or, if the buffer is empty, to
+ * something with an address lesser than `ptr`. Can be `NULL`
+ * \param[out] cp   writes here decoded code point
+ * \param[out] len  writes here the length of decoded code point
+ * \return
+ * + #M3C_ERROR_OK
+ * + #M3C_ERROR_EOF - if `last` is less than `ptr`
+ * + #M3C_ERROR_INVALID_ENCODING - in this case, the code point of `�` is written to `cp` and the
+ * length of the maximal subpart of an ill-formed subsequence is written to `len`
+ */
+M3C_ERROR
+M3C_UTF8ReadCodepointWithLen(const m3c_u8 *ptr, const m3c_u8 *last, M3C_UCP *cp, m3c_size_t *len);
+
+/**
  * \brief Writes the specified code point to the buffer.
  *
  * \param[out] ptr  a pointer to the first code unit to be written

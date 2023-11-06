@@ -158,6 +158,81 @@ M3C_ERROR M3C_UTF8GetASCIICodepointWithLen(
 }
 
 M3C_ERROR
+M3C_UTF8ReadCodepointWithLen(const m3c_u8 *ptr, const m3c_u8 *last, M3C_UCP *cp, m3c_size_t *len) {
+    const M3C_ByteRange *byteRange;
+    int n;
+    int mask;
+
+    *len = 0;
+
+    if (last < ptr)
+        return M3C_ERROR_EOF;
+
+    if (M3C_InRange(*ptr, 0x00, 0x7F)) {
+        n = 0;
+        mask = 0x7F; /* 0b111_1111, 2^7 - 1 */
+        /* NOTE: don't set byteRange here */
+    } else if (M3C_InRange(*ptr, 0xC2, 0xDF)) {
+        n = 6;
+        mask = 0x1F; /* 0b1_1111, 2^5 - 1 */
+        byteRange = &M3C_UTF8SecondByteRanges[0];
+    } else if (M3C_InRange(*ptr, 0xE0, 0xE0)) {
+        n = 12;
+        mask = 0xF; /* 0b1111, 2^4 - 1*/
+        byteRange = &M3C_UTF8SecondByteRanges[1];
+    } else if (M3C_InRange(*ptr, 0xE1, 0xEC) || M3C_InRange(*ptr, 0xEE, 0xEF)) {
+        n = 12;
+        mask = 0xF; /* 0b1111, 2^4 - 1 */
+        byteRange = &M3C_UTF8SecondByteRanges[0];
+    } else if (M3C_InRange(*ptr, 0xED, 0xED)) {
+        n = 12;
+        mask = 0xF; /* 0b1111, 2^4 - 1 */
+        byteRange = &M3C_UTF8SecondByteRanges[2];
+    } else if (M3C_InRange(*ptr, 0xF0, 0xF0)) {
+        n = 18;
+        mask = 0x7; /* 0b111, 2^3 - 1 */
+        byteRange = &M3C_UTF8SecondByteRanges[3];
+    } else if (M3C_InRange(*ptr, 0xF1, 0xF3)) {
+        n = 18;
+        mask = 0x7; /* 0b111, 2^3 - 1*/
+        byteRange = &M3C_UTF8SecondByteRanges[0];
+    } else if (M3C_InRange(*ptr, 0xF4, 0xF4)) {
+        n = 18;
+        mask = 0x7; /* 0b111, 2^3 - 1 */
+        byteRange = &M3C_UTF8SecondByteRanges[4];
+    } else {
+        (*len)++;
+        *cp = M3C_REPLACEMENT_CHARACTER_UCP;
+        return M3C_ERROR_INVALID_ENCODING;
+    }
+
+    *cp = (*ptr & mask) << n;
+    mask = 0x3F; /* reset the mask to 0b11_1111, 2^6 - 1 */
+    (*len)++;
+
+    while (n >= 6) {
+        if (last == ptr) {
+            *cp = M3C_REPLACEMENT_CHARACTER_UCP;
+            return M3C_ERROR_INVALID_ENCODING;
+        }
+        ptr++;
+
+        if (!M3C_InRange(*ptr, byteRange->lo, byteRange->hi)) {
+            *cp = M3C_REPLACEMENT_CHARACTER_UCP;
+            return M3C_ERROR_INVALID_ENCODING;
+        }
+        byteRange = &M3C_UTF8SecondByteRanges[0]; /* reset to 80..BF */
+
+        n -= 6;
+        *cp += (*ptr & mask) << n;
+
+        (*len)++;
+    }
+
+    return M3C_ERROR_OK;
+}
+
+M3C_ERROR
 M3C_UTF8WriteCodepointWithLen(m3c_u8 *ptr, const m3c_u8 *last, M3C_UCP cp, m3c_size_t *len) {
 
     if (last < ptr)
