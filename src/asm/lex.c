@@ -243,6 +243,8 @@ const M3C_ASM_ASCIIRange __underscore_digits_letters[8] = {
 
 #define M3C_InRange_PRINTABLE(cp) (M3C_InRange(cp, ' ', '~'))
 
+#define M3C_GetHexVal(cp) M3C_InRange(cp, '0', '9') ? cp - '0' : (cp & 0x1F) + 9
+
 typedef struct __tagM3C_ASM_Lexer {
     m3c_u8 const *ptr;
     M3C_ASM_Position pos;
@@ -272,6 +274,10 @@ typedef struct __tagM3C_ASM_Lexer {
      * \brief Preproc's stringPool.
      */
     M3C_ASM_StringPool *stringPool;
+    /**
+     * \brief Pointer to the terminating quote or `NULL` (if there is no any).
+     */
+    m3c_u8 const *terminatingQuotePtr;
 } M3C_ASM_Lexer;
 
 /**
@@ -325,16 +331,13 @@ M3C_ERROR __M3C_ASM_Lexer_peek(M3C_ASM_Lexer *lexer, M3C_UCP *cp, m3c_size_t *cp
     return M3C_UTF8GetASCIICodepointWithLen(lexer->ptr, lexer->fragment->bLast, cp, cpLen);
 }
 
-/**
-TODO
- */
 M3C_ERROR __M3C_ASM_Lexer_peek2(
     const m3c_u8 **ptr, M3C_ASM_Position *pos, M3C_ASM_Fragment **fragment,
     const M3C_ASM_Fragment *lastFragment, M3C_UCP *cp, m3c_size_t *cpLen
 ) {
     if (*ptr <= (*fragment)->bLast)
         /* if it's not the end of the fragment just read the next char */
-        return M3C_UTF8GetASCIICodepointWithLen(*ptr, (*fragment)->bLast, cp, cpLen);
+        return M3C_UTF8ReadCodepointWithLen(*ptr, (*fragment)->bLast, cp, cpLen);
 
     /* looking for the next non-empty fragment */
     M3C_LOOP {
@@ -348,7 +351,7 @@ M3C_ERROR __M3C_ASM_Lexer_peek2(
 
     *ptr = (*fragment)->bFirst;
     *pos = (*fragment)->pos;
-    return M3C_UTF8GetASCIICodepointWithLen(*ptr, (*fragment)->bLast, cp, cpLen);
+    return M3C_UTF8ReadCodepointWithLen(*ptr, (*fragment)->bLast, cp, cpLen);
 }
 
 /**
@@ -901,79 +904,45 @@ M3C_ERROR __M3C_ASM_lexZero(M3C_ASM_Lexer *lexer) {
  * character sequence is.
  *
  * \details Diagnostics:
- * + (required) \ref M3C_ASM_DIAGNOSTIC_ID_INVALID_CHARACTERS_IN_STRING_LITERAL
- * "INVALID_CHARACTERS_IN_STRING_LITERAL"
- * + (possible) \ref M3C_ASM_DIAGNOSTIC_ID_INVALID_ENCODING "INVALID_ENCODING"
+ * + (required) \ref M3C_ASM_DIAGNOSTIC_ID_INVALID_ENCODING "INVALID_ENCODING"
  *
  * \param[in,out] lexer lexer
  * \return
  * + #M3C_ERROR_OK - OK or EOF is reached
  * + #M3C_ERROR_OOM - if failed to push token or diagnostic
  */
-M3C_ERROR __M3C_ASM_lexStringInvalidCharacters(M3C_ASM_Lexer *lexer) {
+M3C_ERROR __M3C_ASM_lexStringInvalidEncodings(M3C_ASM_Lexer *lexer) {
+    /* NOTE(M3C-59): C compiler just pushed these bytes to a string without a word. To do so we need
+     * to PEEK differently - right now PEEK reads code points (not bytes) and just returns `�` for
+     * those bytes */
+
     VAR_DECL;
 
-    M3C_Diagnostic diagInvalidCharacterInStringLiteral;
     M3C_Diagnostic diagInvalidEncoding;
-
-    /* we need to remember diagnostic index as we may need to add diagInvalidEncoding diagnostics */
-    m3c_size_t invalidCharacterInStringLiteralDiagIndex;
-
-    diagInvalidCharacterInStringLiteral.severity = M3C_SEVERITY_ERROR;
-    diagInvalidCharacterInStringLiteral.info =
-        &M3C_ASM_DIAGNOSTIC_INFO_INVALID_CHARACTERS_IN_STRING_LITERAL;
 
     diagInvalidEncoding.severity = M3C_SEVERITY_ERROR;
     diagInvalidEncoding.info = &M3C_ASM_DIAGNOSTIC_INFO_INVALID_ENCODING;
 
     TOK_KIND(M3C_ASM_TOKEN_KIND_UNRECOGNIZED);
+    DIAG_START_FROM_LEXER(&diagInvalidEncoding);
 
-    DIAG_START_FROM_LEXER(&diagInvalidCharacterInStringLiteral);
+    PEEK;
+    ADVANCE;
 
-    /* push diagnostic and save its index */
-    invalidCharacterInStringLiteralDiagIndex = lexer->diagnostics->vec.len;
-    if (M3C_VEC_PUSH(
-            M3C_Diagnostic, &lexer->diagnostics->vec, &diagInvalidCharacterInStringLiteral
-        ) != M3C_ERROR_OK)
-        return M3C_ERROR_OOM;
-    ++lexer->diagnostics->errors;
-
+    /* looking for EOF or valid code point */
     M3C_LOOP {
         PEEK;
-
-        if (status == M3C_ERROR_EOF ||
-            (status == M3C_ERROR_OK && (cp == '\n' || cp == '\r' || /* EOL (and EOT with warning) */
-                                        cp == '"' ||                /* EOT */
-                                        (M3C_InRange_PRINTABLE(cp)) /* valid code points */
-                                       )))
+        if (status == M3C_ERROR_OK || status == M3C_ERROR_EOF)
             break;
-        else if (status == M3C_ERROR_OK) { /* just an invalid character */
-            ADVANCE;
-            continue;
-        }
 
-        /* well, let's handle invalid encoding (status == M3C_ERROR_INVALID_ENCODING) */
-
-        DIAG_START_FROM_LEXER(&diagInvalidEncoding);
         ADVANCE;
-
-        /* looking for EOF or valid code point */
-        M3C_LOOP {
-            PEEK;
-            if (status == M3C_ERROR_OK || status == M3C_ERROR_EOF)
-                break;
-
-            ADVANCE;
-        }
-        DIAG_END(&diagInvalidEncoding);
-
-        if (M3C_VEC_PUSH(M3C_Diagnostic, &lexer->diagnostics->vec, &diagInvalidEncoding) !=
-            M3C_ERROR_OK)
-            return M3C_ERROR_OOM;
-        ++lexer->diagnostics->errors;
     }
+    DIAG_END(&diagInvalidEncoding);
 
-    DIAG_END(&lexer->diagnostics->vec.data[invalidCharacterInStringLiteralDiagIndex]);
+    if (M3C_VEC_PUSH(M3C_Diagnostic, &lexer->diagnostics->vec, &diagInvalidEncoding) !=
+        M3C_ERROR_OK)
+        return M3C_ERROR_OOM;
+    ++lexer->diagnostics->errors;
 
     return M3C_ERROR_OK;
 }
@@ -1061,6 +1030,108 @@ M3C_ERROR __M3C_ASM_lexEscapeSequence(M3C_ASM_Lexer *lexer) {
     }
 }
 
+M3C_ERROR __M3C_ASM_lexemizeString(M3C_ASM_Lexer *lexer) {
+    VAR_DECL;
+
+    M3C_ASM_CachedString cachedString;
+    M3C_VEC(m3c_u8) vec;
+    int d1;
+    int d2;
+
+    vec.data = m3c_malloc(sizeof(m3c_u8) * M3C_LEX_STRING_START_CAP);
+    if (!vec.data)
+        return M3C_ERROR_OOM;
+    vec.cap = M3C_LEX_STRING_START_CAP;
+    vec.len = 0;
+
+    /* get rid of the first `"` */
+    PEEK2;
+    ADVANCE2;
+
+    /* NOTE: if string is terminated just not read the last quote. If isn't just read until end. */
+    while (lexer->ptr2 <
+           (lexer->terminatingQuotePtr == M3C_NULL ? lexer->ptr : lexer->terminatingQuotePtr)) {
+
+        PEEK2;
+
+        if (cp == '\\') {
+            ADVANCE2;
+            PEEK2;
+            if (status == M3C_ERROR_EOF)
+                break;
+
+            if (cp == '\'') {
+                cp = 0x27;
+            } else if (cp == '"') {
+                cp = 0x22;
+            } else if (cp == '?') {
+                cp = 0x3F;
+            } else if (cp == '\\') {
+                cp = 0x5C;
+            } else if (cp == 'a') {
+                cp = 0x07;
+            } else if (cp == 'b') {
+                cp = 0x08;
+            } else if (cp == 'f') {
+                cp = 0x0c;
+            } else if (cp == 'n') {
+                cp = 0x0A;
+            } else if (cp == 'r') {
+                cp = 0x0D;
+            } else if (cp == 't') {
+                cp = 0x09;
+            } else if (cp == 'v') {
+                cp = 0x0B;
+            } else if (cp == 'x') {
+                ADVANCE2;
+
+                /* NOTE: EOF here is impossible here as in this case we have kind == UNRECOGNIZED
+                 * token and do not perform lexemizing */
+                PEEK2;
+                if (M3C_InRange_DIGIT_HEX(cp)) {
+                    d1 = M3C_GetHexVal(cp);
+                    ADVANCE2;
+                    PEEK2;
+                    if (M3C_InRange_DIGIT_HEX(cp) & status == M3C_ERROR_OK) {
+                        d2 = M3C_GetHexVal(cp);
+                        cp = d1 * 16 + d2;
+                        ADVANCE2;
+                    } else
+                        cp = d1;
+
+                    if (M3C_VEC_RESERVE(m3c_u8, &vec, vec.len + 1) != M3C_ERROR_OK) {
+                        m3c_free(vec.data);
+                        return M3C_ERROR_OOM;
+                    }
+                    vec.data[vec.len] = (m3c_u8)cp;
+                    vec.len++;
+
+                    continue;
+                }
+            }
+        }
+
+        if (M3C_VEC_RESERVE(m3c_u8, &vec, vec.len + 4) != M3C_ERROR_OK) {
+            m3c_free(vec.data);
+            return M3C_ERROR_OOM;
+        }
+        M3C_UTF8WriteCodepointWithLen(vec.data + vec.len, vec.data + vec.cap, cp, &cpLen);
+        vec.len += cpLen;
+
+        ADVANCE2;
+    }
+
+    cachedString.ptr = vec.data;
+    cachedString.len = (m3c_u32)vec.len;
+
+    lexer->token.lexeme.hStr = (m3c_u32)lexer->stringPool->len;
+
+    if (STR_PUSH(&cachedString) != M3C_ERROR_OK)
+        return M3C_ERROR_OOM;
+
+    return M3C_ERROR_OK;
+}
+
 /**
  * \brief Lexes the \ref M3C_ASM_TOKEN_KIND_STRING "string literal".
  *
@@ -1099,13 +1170,12 @@ M3C_ERROR __M3C_ASM_lexString(M3C_ASM_Lexer *lexer) {
 
         if (status == M3C_ERROR_OK && cp == '"') {
             /* ": EOT */
+            lexer->terminatingQuotePtr = lexer->ptr;
 
             ADVANCE;
             TOK_END;
 
-            if (TOK_PUSH != M3C_ERROR_OK)
-                return M3C_ERROR_OOM;
-            return M3C_ERROR_OK;
+            goto lexemize;
 
         } else if (status == M3C_ERROR_OK && cp == '\\') {
             /* \: start of escape sequence */
@@ -1114,14 +1184,17 @@ M3C_ERROR __M3C_ASM_lexString(M3C_ASM_Lexer *lexer) {
             if (status != M3C_ERROR_OK)
                 return status;
             continue;
-        } else if (status == M3C_ERROR_OK && M3C_InRange_PRINTABLE(cp)) {
-            /* any printable except `\` or `"` */
+
+        } else if (status == M3C_ERROR_OK && (cp != '\n' && cp != '\r')) {
+            /* any char except `\` or `"`: any regular string char */
 
             ADVANCE;
             continue;
+
         } else if (status == M3C_ERROR_EOF || (status == M3C_ERROR_OK && (cp == '\n' || cp == '\r'))) {
             /* EOF, \n, or \r: EOT (with diagnostic) */
 
+            lexer->terminatingQuotePtr = M3C_NULL;
             DIAG_START_FROM_TOKEN(&diagUnterminatedStringLiteral);
             DIAG_END(&diagUnterminatedStringLiteral);
 
@@ -1132,25 +1205,29 @@ M3C_ERROR __M3C_ASM_lexString(M3C_ASM_Lexer *lexer) {
             ++lexer->diagnostics->warnings;
 
             TOK_END;
-            if (TOK_PUSH != M3C_ERROR_OK)
-                return M3C_ERROR_OOM;
-            return status; /* can be OK and EOF */
+            goto lexemize;
 
         } else {
-            /**
-             * NOTE: (status == INVALID_ENCODING) OR (status == OK and cp !=
-             *   1. any printable
-             *   2. EOL
-             * )
-             */
+            /* status == INVALID_ENCODING */
 
-            status = __M3C_ASM_lexStringInvalidCharacters(lexer);
+            status = __M3C_ASM_lexStringInvalidEncodings(lexer);
             if (status != M3C_ERROR_OK)
                 return status;
 
             continue;
         }
     }
+
+lexemize:
+    if (lexer->token.kind == M3C_ASM_TOKEN_KIND_STRING) {
+
+        if (__M3C_ASM_lexemizeString(lexer) != M3C_ERROR_OK)
+            return M3C_ERROR_OOM;
+    }
+
+    if (TOK_PUSH != M3C_ERROR_OK)
+        return M3C_ERROR_OOM;
+    return status; /* can be OK and EOF */
 }
 
 /**

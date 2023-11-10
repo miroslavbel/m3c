@@ -4,6 +4,16 @@
 #include <m3c/common/errors.h>
 #include <m3c/asm/types.h>
 
+#ifndef M3C_LEX_STRING_START_CAP
+/**
+ * \brief The initial capacity for \ref M3C_ASM_TOKEN_KIND_STRING "string literal" lexeme.
+ *
+ * \details We assume that the majority of strings will serve as variable or label identifiers, and
+ * therefore, their length will be limited to three characters.
+ */
+#    define M3C_LEX_STRING_START_CAP 4
+#endif
+
 /**
  * \brief Token kind.
  */
