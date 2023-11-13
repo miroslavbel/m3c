@@ -245,6 +245,11 @@ const M3C_ASM_ASCIIRange __underscore_digits_letters[8] = {
 
 #define M3C_GetHexVal(cp) M3C_InRange(cp, '0', '9') ? cp - '0' : (cp & 0x1F) + 9
 
+#define M3C_BIN_PREFIX(cp) ((cp) == 'b' || (cp) == 'B' || (cp) == 'y' || (cp) == 'Y')
+#define M3C_OCT_PREFIX(cp) ((cp) == 'o' || (cp) == 'O' || (cp) == 'q' || (cp) == 'Q')
+#define M3C_DEC_PREFIX(cp) ((cp) == 'd' || (cp) == 'D')
+#define M3C_HEX_PREFIX(cp) ((cp) == 'x' || (cp) == 'X' || (cp) == 'h' || (cp) == 'H')
+
 typedef struct __tagM3C_ASM_Lexer {
     m3c_u8 const *ptr;
     M3C_ASM_Position pos;
@@ -590,6 +595,65 @@ M3C_ERROR __M3C_ASM_lexNumberUntilEnd(M3C_ASM_Lexer *lexer) {
 }
 
 /**
+ * \brief Fills the lexeme of \ref M3C_ASM_TOKEN_KIND_NUMBER "number" token.
+ *
+ * \param[in,out] lexer lexer
+ * \return
+ * + M3C_ERROR_OK
+ */
+M3C_ERROR __M3C_ASM_lexemizeNumber(M3C_ASM_Lexer *lexer) {
+    /* TODO: integer constant is too large */
+    VAR_DECL;
+
+    int base = 10;
+    m3c_bool isBaseSet = m3c_false;
+    lexer->token.lexeme.num = 0;
+
+    while (lexer->ptr2 < lexer->ptr) {
+        PEEK2;
+
+        /* if we haven't set base yet, check for base first */
+        if (!isBaseSet) {
+            if (M3C_BIN_PREFIX(cp)) {
+                base = 2;
+                isBaseSet = m3c_true;
+                ADVANCE2;
+                continue;
+            } else if (M3C_OCT_PREFIX(cp)) {
+                base = 8;
+                isBaseSet = m3c_true;
+                ADVANCE2;
+                continue;
+            } else if (M3C_DEC_PREFIX(cp)) {
+                base = 10;
+                isBaseSet = m3c_true;
+                ADVANCE2;
+                continue;
+            } else if (M3C_HEX_PREFIX(cp)) {
+                base = 16;
+                isBaseSet = m3c_true;
+                ADVANCE2;
+                continue;
+            }
+        }
+
+        /* HACK: as we assume that the token is valid NUMBER we can only encounter:
+         *   1. zero (right before the base prefix)
+         *   2. digit with the `base` base
+         *   3. char '_' (which we can just ignore)
+         */
+        if (cp != '_') {
+            lexer->token.lexeme.num *= base;
+            lexer->token.lexeme.num += cp > '9' ? (cp & 0x1F) + 9 : cp - '0';
+        }
+
+        ADVANCE2;
+    }
+
+    return M3C_ERROR_OK;
+}
+
+/**
  * \brief Lexes the number body.
  *
  * \details Lexes the `[_\d]` part of the number literal, where the actual `\d` is specified by
@@ -649,6 +713,8 @@ M3C_ERROR __M3C_ASM_lexNumberBody(M3C_ASM_Lexer *lexer, m3c_u8 rangesLen) {
         TOK_KIND(M3C_ASM_TOKEN_KIND_NUMBER);
 
     TOK_END;
+
+    __M3C_ASM_lexemizeNumber(lexer);
 
     if (TOK_PUSH != M3C_ERROR_OK)
         return M3C_ERROR_OOM;
@@ -829,7 +895,7 @@ M3C_ERROR __M3C_ASM_lexZero(M3C_ASM_Lexer *lexer) {
         return M3C_ERROR_EOF;
     }
 
-    if (cp == 'b' || cp == 'B' || cp == 'y' || cp == 'Y') {
+    if (M3C_BIN_PREFIX(cp)) {
         /* binary */
 
         digitsLen = DIGITS_LEN_BIN;
@@ -837,7 +903,7 @@ M3C_ERROR __M3C_ASM_lexZero(M3C_ASM_Lexer *lexer) {
 
         ADVANCE;
         return __M3C_ASM_lexNumberAfterPrefix(lexer, digitsLen, underscoreDigitsLen);
-    } else if (cp == 'o' || cp == 'O' || cp == 'q' || cp == 'Q') {
+    } else if (M3C_OCT_PREFIX(cp)) {
         /* octal */
 
         digitsLen = DIGITS_LEN_OCT;
@@ -845,7 +911,7 @@ M3C_ERROR __M3C_ASM_lexZero(M3C_ASM_Lexer *lexer) {
 
         ADVANCE;
         return __M3C_ASM_lexNumberAfterPrefix(lexer, digitsLen, underscoreDigitsLen);
-    } else if (cp == 'd' || cp == 'D') {
+    } else if (M3C_DEC_PREFIX(cp)) {
         /* decimal */
 
         digitsLen = DIGITS_LEN_DEC;
@@ -853,7 +919,7 @@ M3C_ERROR __M3C_ASM_lexZero(M3C_ASM_Lexer *lexer) {
 
         ADVANCE;
         return __M3C_ASM_lexNumberAfterPrefix(lexer, digitsLen, underscoreDigitsLen);
-    } else if (cp == 'x' || cp == 'X' || cp == 'h' || cp == 'H') {
+    } else if (M3C_HEX_PREFIX(cp)) {
         /* hex */
 
         digitsLen = DIGITS_LEN_HEX;
