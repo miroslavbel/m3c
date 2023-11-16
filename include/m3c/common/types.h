@@ -66,6 +66,32 @@ typedef unsigned long long m3c_u32;
 #    endif
 #endif
 
+#ifndef m3c_i32
+#    ifndef FORBIT_USE_OF_STDTYPES
+#        include <limits.h>
+#        if SCHAR_MAX >= 0x7fffffff
+#            define M3C_I32_MAX SCHAR_MAX
+typedef signed char m3c_i32;
+#        elif SHRT_MAX >= 0x7fffffff
+#            define M3C_I32_MAX SHRT_MAX
+typedef signed short m3c_i32;
+#        elif INT_MAX >= 0x7fffffff
+#            define M3C_I32_MAX INT_MAX
+typedef signed int m3c_i32;
+#        elif LONG_MAX >= 0x7fffffff
+#            define M3C_I32_MAX LONG_MAX
+typedef signed long m3c_i32;
+#        elif __STDC_VERSION__ >= 199901L && LLONG_MAX >= 0x7fffffff
+#            define M3C_I32_MAX LLONG_MAX
+typedef signed long long m3c_i32;
+#        else
+#            error "Can't find type for m3c_i32 with <limits.h>"
+#        endif
+#    else
+#        error "m3c_i32 is not defined and FORBIT_TO_USE_STDTYPES is defined"
+#    endif
+#endif
+
 #ifndef m3c_size_t
 #    ifndef FORBIT_USE_OF_STDTYPES
 #        include <stddef.h>

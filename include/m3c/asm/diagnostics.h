@@ -123,7 +123,19 @@ typedef enum __tagM3C_ASM_DiagnosticId {
      * M3C_ASM_TOKEN_KIND_STRING "STRING" token and `\x` is used without following hexadecimal
      * digits. See #M3C_ASM_DIAGNOSTIC_ID_UNKNOWN_ESCAPE_SEQUENCE for all escape sequences.
      */
-    M3C_ASM_DIAGNOSTIC_ID_X_USED_WITH_NO_FOLLOWING_HEX_DIGITS
+    M3C_ASM_DIAGNOSTIC_ID_X_USED_WITH_NO_FOLLOWING_HEX_DIGITS,
+    /**
+     * \brief Number constant is too large.
+     *
+     * \details #M3C_ASM_lex emits this diagnostic when trying to lex a \ref
+     * M3C_ASM_TOKEN_KIND_NUMBER "NUMBER" token and the number this token represents is too large
+     * for the compiler to store it.
+     *
+     * \note In the current implementation, the compiler uses `i32` to store a number value.
+     * \note The compiler sets the token kind of the token causing this diagnostic to \ref
+     * M3C_ASM_TOKEN_KIND_UNRECOGNIZED "UNRECOGNIZED"
+     */
+    M3C_ASM_DIAGNOSTIC_ID_NUMBER_CONSTANT_IS_TOO_LARGE
 } M3C_ASM_DiagnosticId;
 
 /**

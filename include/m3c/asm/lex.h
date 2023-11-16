@@ -198,7 +198,7 @@ typedef union __tagM3C_ASM_Lexeme {
     /**
      * \brief Integer value.
      */
-    m3c_u32 num;
+    m3c_i32 num;
     /**
      * \brief Handle of the string lexeme.
      *

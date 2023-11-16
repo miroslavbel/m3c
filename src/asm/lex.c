@@ -245,6 +245,11 @@ const M3C_ASM_ASCIIRange __underscore_digits_letters[8] = {
 
 #define M3C_GetHexVal(cp) M3C_InRange(cp, '0', '9') ? cp - '0' : (cp & 0x1F) + 9
 
+#define M3C_BIN_PREFIX(cp) ((cp) == 'b' || (cp) == 'B' || (cp) == 'y' || (cp) == 'Y')
+#define M3C_OCT_PREFIX(cp) ((cp) == 'o' || (cp) == 'O' || (cp) == 'q' || (cp) == 'Q')
+#define M3C_DEC_PREFIX(cp) ((cp) == 'd' || (cp) == 'D')
+#define M3C_HEX_PREFIX(cp) ((cp) == 'x' || (cp) == 'X' || (cp) == 'h' || (cp) == 'H')
+
 typedef struct __tagM3C_ASM_Lexer {
     m3c_u8 const *ptr;
     M3C_ASM_Position pos;
@@ -590,6 +595,106 @@ M3C_ERROR __M3C_ASM_lexNumberUntilEnd(M3C_ASM_Lexer *lexer) {
 }
 
 /**
+ * \brief Fills the lexeme of \ref M3C_ASM_TOKEN_KIND_NUMBER "number" token.
+ *
+ * \details Diagnostics:
+ * + (possible) \ref M3C_ASM_DIAGNOSTIC_ID_NUMBER_CONSTANT_IS_TOO_LARGE
+ * "NUMBER_CONSTANT_IS_TOO_LARGE"
+ *
+ * \param[in,out] lexer lexer
+ * \return
+ * + M3C_ERROR_OK
+ * + #M3C_ERROR_OOM - if failed to push diagnostic
+ */
+M3C_ERROR __M3C_ASM_lexemizeNumber(M3C_ASM_Lexer *lexer) {
+    VAR_DECL;
+
+    M3C_Diagnostic diagNumberConstantIsTooLarge;
+
+    int base;
+    m3c_bool isBaseSet;
+    m3c_i32 maxValueBeforeBaseMultOverflow;
+
+    int chDigitVal;
+
+    diagNumberConstantIsTooLarge.severity = M3C_SEVERITY_ERROR;
+    diagNumberConstantIsTooLarge.info = &M3C_ASM_DIAGNOSTIC_INFO_NUMBER_CONSTANT_IS_TOO_LARGE;
+
+    base = 10;
+    maxValueBeforeBaseMultOverflow = M3C_I32_MAX / base;
+    isBaseSet = m3c_false;
+
+    lexer->token.lexeme.num = 0;
+
+    while (lexer->ptr2 < lexer->ptr) {
+        PEEK2;
+
+        /* if we haven't set base yet, check for base first */
+        if (!isBaseSet) {
+            if (M3C_BIN_PREFIX(cp)) {
+                base = 2;
+                maxValueBeforeBaseMultOverflow = M3C_I32_MAX / base;
+                isBaseSet = m3c_true;
+                ADVANCE2;
+                continue;
+            } else if (M3C_OCT_PREFIX(cp)) {
+                base = 8;
+                maxValueBeforeBaseMultOverflow = M3C_I32_MAX / base;
+                isBaseSet = m3c_true;
+                ADVANCE2;
+                continue;
+            } else if (M3C_DEC_PREFIX(cp)) {
+                base = 10;
+                maxValueBeforeBaseMultOverflow = M3C_I32_MAX / base;
+                isBaseSet = m3c_true;
+                ADVANCE2;
+                continue;
+            } else if (M3C_HEX_PREFIX(cp)) {
+                base = 16;
+                maxValueBeforeBaseMultOverflow = M3C_I32_MAX / base;
+                isBaseSet = m3c_true;
+                ADVANCE2;
+                continue;
+            }
+        }
+
+        /* HACK: as we assume that the token is valid NUMBER, so we can only encounter:
+         *   1. zero (right before the base prefix)
+         *   2. digit with the `base` base
+         *   3. char '_' (which we can just ignore)
+         */
+        if (cp != '_') {
+            if (lexer->token.lexeme.num > maxValueBeforeBaseMultOverflow)
+                goto push_diag_and_return;
+            lexer->token.lexeme.num *= base;
+
+            chDigitVal = cp > '9' ? (cp & 0x1F) + 9 : cp - '0';
+            if (lexer->token.lexeme.num > M3C_I32_MAX - chDigitVal)
+                goto push_diag_and_return;
+            lexer->token.lexeme.num += chDigitVal;
+        }
+
+        ADVANCE2;
+    }
+
+    return M3C_ERROR_OK;
+
+push_diag_and_return:
+    TOK_KIND(M3C_ASM_TOKEN_KIND_UNRECOGNIZED);
+    lexer->token.lexeme.num = 0;
+
+    DIAG_START_FROM_TOKEN(&diagNumberConstantIsTooLarge);
+    DIAG_END(&diagNumberConstantIsTooLarge);
+
+    if (M3C_VEC_PUSH(M3C_Diagnostic, &lexer->diagnostics->vec, &diagNumberConstantIsTooLarge) !=
+        M3C_ERROR_OK)
+        return M3C_ERROR_OOM;
+    ++lexer->diagnostics->errors;
+
+    return M3C_ERROR_OK;
+}
+
+/**
  * \brief Lexes the number body.
  *
  * \details Lexes the `[_\d]` part of the number literal, where the actual `\d` is specified by
@@ -599,6 +704,8 @@ M3C_ERROR __M3C_ASM_lexNumberUntilEnd(M3C_ASM_Lexer *lexer) {
  * Diagnostics:
  * + (possible) \ref M3C_ASM_DIAGNOSTIC_ID_INVALID_DIGIT_FOR_THIS_BASE_PREFIX
  * "INVALID_DIGIT_FOR_THIS_BASE_PREFIX"
+ * + (possible) \ref M3C_ASM_DIAGNOSTIC_ID_NUMBER_CONSTANT_IS_TOO_LARGE
+ * "NUMBER_CONSTANT_IS_TOO_LARGE"
  *
  * \param[in,out] lexer     lexer
  * \param         rangesLen one of the #UNDERSCORE_DIGITS lengths
@@ -650,6 +757,8 @@ M3C_ERROR __M3C_ASM_lexNumberBody(M3C_ASM_Lexer *lexer, m3c_u8 rangesLen) {
 
     TOK_END;
 
+    __M3C_ASM_lexemizeNumber(lexer);
+
     if (TOK_PUSH != M3C_ERROR_OK)
         return M3C_ERROR_OOM;
     return M3C_ERROR_OK;
@@ -669,6 +778,8 @@ M3C_ERROR __M3C_ASM_lexNumberBody(M3C_ASM_Lexer *lexer, m3c_u8 rangesLen) {
  * "NUMBER_LITERAL_MUST_CONTAIN_AT_LEAST_ONE_DIGIT"
  * + (possible) \ref M3C_ASM_DIAGNOSTIC_ID_LEADING_ZEROS_ARE_NOT_PERMITTED
  * "LEADING_ZEROS_ARE_NOT_PERMITTED"
+ * + (possible) \ref M3C_ASM_DIAGNOSTIC_ID_NUMBER_CONSTANT_IS_TOO_LARGE
+ * "NUMBER_CONSTANT_IS_TOO_LARGE"
  *
  * \param[in,out] lexer                      lexer
  * \param         digitRangeLen              one of the #DIGITS lengths
@@ -773,6 +884,8 @@ M3C_ERROR __M3C_ASM_lexNumberAfterPrefix(
  * "NUMBER_LITERAL_MUST_CONTAIN_AT_LEAST_ONE_DIGIT"
  * + (possible) \ref M3C_ASM_DIAGNOSTIC_ID_LEADING_ZEROS_ARE_NOT_PERMITTED
  * "LEADING_ZEROS_ARE_NOT_PERMITTED"
+ * + (possible) \ref M3C_ASM_DIAGNOSTIC_ID_NUMBER_CONSTANT_IS_TOO_LARGE
+ * "NUMBER_CONSTANT_IS_TOO_LARGE"
  *
  * \warning It is not guaranteed to return #M3C_ERROR_EOF if EOF is reached after the token.
  *
@@ -829,7 +942,7 @@ M3C_ERROR __M3C_ASM_lexZero(M3C_ASM_Lexer *lexer) {
         return M3C_ERROR_EOF;
     }
 
-    if (cp == 'b' || cp == 'B' || cp == 'y' || cp == 'Y') {
+    if (M3C_BIN_PREFIX(cp)) {
         /* binary */
 
         digitsLen = DIGITS_LEN_BIN;
@@ -837,7 +950,7 @@ M3C_ERROR __M3C_ASM_lexZero(M3C_ASM_Lexer *lexer) {
 
         ADVANCE;
         return __M3C_ASM_lexNumberAfterPrefix(lexer, digitsLen, underscoreDigitsLen);
-    } else if (cp == 'o' || cp == 'O' || cp == 'q' || cp == 'Q') {
+    } else if (M3C_OCT_PREFIX(cp)) {
         /* octal */
 
         digitsLen = DIGITS_LEN_OCT;
@@ -845,7 +958,7 @@ M3C_ERROR __M3C_ASM_lexZero(M3C_ASM_Lexer *lexer) {
 
         ADVANCE;
         return __M3C_ASM_lexNumberAfterPrefix(lexer, digitsLen, underscoreDigitsLen);
-    } else if (cp == 'd' || cp == 'D') {
+    } else if (M3C_DEC_PREFIX(cp)) {
         /* decimal */
 
         digitsLen = DIGITS_LEN_DEC;
@@ -853,7 +966,7 @@ M3C_ERROR __M3C_ASM_lexZero(M3C_ASM_Lexer *lexer) {
 
         ADVANCE;
         return __M3C_ASM_lexNumberAfterPrefix(lexer, digitsLen, underscoreDigitsLen);
-    } else if (cp == 'x' || cp == 'X' || cp == 'h' || cp == 'H') {
+    } else if (M3C_HEX_PREFIX(cp)) {
         /* hex */
 
         digitsLen = DIGITS_LEN_HEX;
