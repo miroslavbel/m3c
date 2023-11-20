@@ -233,6 +233,34 @@ M3C_UTF8ReadCodepointWithLen(const m3c_u8 *ptr, const m3c_u8 *last, M3C_UCP *cp,
 }
 
 M3C_ERROR
+M3C_UTF8ReadBackCodepointWithLen(
+    const m3c_u8 *ptr, const m3c_u8 *first, const m3c_u8 *last, M3C_UCP *cp, m3c_size_t *len
+) {
+    M3C_ERROR status;
+    const m3c_u8 *bPtr;
+    const m3c_u8 *fPtr = ptr - first > 3 ? ptr - M3C_UTF8_CP_MAX_BLEN : first;
+
+    if (fPtr == ptr) {
+        return M3C_ERROR_EOF;
+    }
+
+    do {
+        bPtr = fPtr;
+
+        status = M3C_UTF8ReadCodepointWithLen(bPtr, last, cp, len);
+        if (status == M3C_ERROR_EOF)
+            return M3C_ERROR_EOF;
+
+        fPtr += *len;
+
+    } while (fPtr < ptr);
+
+    *len = ptr - bPtr;
+
+    return status;
+}
+
+M3C_ERROR
 M3C_UTF8WriteCodepointWithLen(m3c_u8 *ptr, const m3c_u8 *last, M3C_UCP cp, m3c_size_t *len) {
 
     if (last < ptr)
