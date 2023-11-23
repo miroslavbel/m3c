@@ -1450,7 +1450,7 @@ M3C_ERROR __M3C_ASM_lexNextToken(M3C_ASM_Lexer *lexer) {
     M3C_LOOP {
         PEEK;
         if (status == M3C_ERROR_EOF)
-            return status;
+            return M3C_ERROR_EOF;
 
         if (cp != ' ' && cp != '\t')
             break;
@@ -1474,9 +1474,7 @@ M3C_ERROR __M3C_ASM_lexNextToken(M3C_ASM_Lexer *lexer) {
         } else {
             __ADVANCE_ONLY_POS_NL;
             TOK_END;
-            if (TOK_PUSH != M3C_ERROR_OK)
-                return M3C_ERROR_OOM;
-            return status;
+            return TOK_PUSH;
         }
     } else if (cp == '!') {
         ADVANCE;
