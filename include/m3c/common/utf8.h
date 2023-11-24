@@ -35,6 +35,11 @@ typedef m3c_u8 M3C_UTF8cu;
 #define M3C_UTF8_REPLACEMENT_CHARACTER_BLEN 3
 
 /**
+ * \brief Maximum number of bytes a character can occupy in UTF-8.
+ */
+#define M3C_UTF8_CP_MAX_BLEN 4
+
+/**
  * \see #M3C_UTF8ValidateCodepoint
  */
 #define M3C_UTF8_OK 0
@@ -97,6 +102,28 @@ M3C_ERROR M3C_UTF8GetASCIICodepointWithLen(
  */
 M3C_ERROR
 M3C_UTF8ReadCodepointWithLen(const m3c_u8 *ptr, const m3c_u8 *last, M3C_UCP *cp, m3c_size_t *len);
+
+/**
+ * \brief Reads the previous code point in the buffer. If the pointer does not point to the first
+ * byte of the code point, it will read that code point.
+ *
+ * \param[in]  ptr   a pointer
+ * \param[in]  first a pointer to first code unit in buffer
+ * \param[in]  last  a pointer to the last code unit in the buffer or, if the buffer is empty, to
+ * something with an address lesser than `ptr`. Can be `NULL`
+ * \param[out] cp    writes here decoded code point
+ * \param[out] delta writes here the delta between `ptr` and the pointer to the first code unit of
+ * read code point
+ * \return
+ * + #M3C_ERROR_OK
+ * + #M3C_ERROR_EOF - if there are not previous code points in the buffer
+ * + #M3C_ERROR_INVALID_ENCODING - in this case, the code point of `�` is written to `cp` and the
+ * length of the maximal subpart of an ill-formed subsequence is written to `len`
+ */
+M3C_ERROR
+M3C_UTF8ReadBackCodepointWithLen(
+    const m3c_u8 *ptr, const m3c_u8 *first, const m3c_u8 *last, M3C_UCP *cp, m3c_size_t *delta
+);
 
 /**
  * \brief Writes the specified code point to the buffer.
