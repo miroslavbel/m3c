@@ -1445,6 +1445,7 @@ M3C_ERROR __M3C_ASM_lexSymbol(M3C_ASM_Lexer *lexer) {
  */
 M3C_ERROR __M3C_ASM_lexNextToken(M3C_ASM_Lexer *lexer) {
     VAR_DECL;
+    M3C_ASM_Position tempPos;
 
     /* skip whitespaces (only space and '\t') */
     M3C_LOOP {
@@ -1466,12 +1467,18 @@ M3C_ERROR __M3C_ASM_lexNextToken(M3C_ASM_Lexer *lexer) {
     } else if (cp == '\r') {
         TOK_KIND(M3C_ASM_TOKEN_KIND_EOL);
         ADVANCE;
+
+        /* NOTE: store pos before PEEK, as PEEK can automatically rewrites it with pos of the next
+         * fragment (if any) */
+        tempPos = lexer->pos;
         PEEK;
+
         if (status == M3C_ERROR_OK && cp == '\n') { /* \r ~ \n */
             ADVANCE_NL;
             TOK_END;
             return TOK_PUSH;
         } else {
+            lexer->pos = tempPos;
             __ADVANCE_ONLY_POS_NL;
             TOK_END;
             return TOK_PUSH;
