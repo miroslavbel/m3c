@@ -192,15 +192,21 @@ typedef enum __tagM3C_ASM_TokenKind {
 #define M3C_ASM_Token_MAX_CLEN ((m3c_u32)M3C_U16_MAX * (m3c_u32)M3C_U16_MAX)
 
 /**
- * \brief Value of the token.
+ * \brief Lexeme - the "value" of the token.
  */
 typedef union __tagM3C_ASM_Lexeme {
     /**
      * \brief Integer value.
+     *
+     * \details Used by \ref M3C_ASM_TOKEN_KIND_NUMBER "NUMBER" token type.
      */
     m3c_i32 num;
     /**
      * \brief Handle of the string lexeme.
+     *
+     * \details Used by the following token types:
+     * + \ref M3C_ASM_TOKEN_KIND_SYMBOL "SYMBOL"
+     * + \ref M3C_ASM_TOKEN_KIND_STRING "STRING"
      *
      * \note This handle in the current implementation corresponds to the index in \ref
      * __tagM3C_ASM_PreProc::stringPool "preproc's string pool".
@@ -229,7 +235,9 @@ struct __tagM3C_ASM_Token {
      * \brief Parsed lexeme of the token.
      *
      * \warning Only tokens of the following types have their own lexemes:
-     * + \ref M3C_ASM_TOKEN_KIND_SYMBOL "SYMBOL"
+     * + \ref M3C_ASM_TOKEN_KIND_NUMBER "NUMBER" (using #M3C_ASM_Lexeme::num)
+     * + \ref M3C_ASM_TOKEN_KIND_SYMBOL "SYMBOL" (using #M3C_ASM_Lexeme::hStr)
+     * + \ref M3C_ASM_TOKEN_KIND_STRING "STRING" (using #M3C_ASM_Lexeme::hStr)
      */
     M3C_ASM_Lexeme lexeme;
     /**
