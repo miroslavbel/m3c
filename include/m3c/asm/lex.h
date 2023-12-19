@@ -41,17 +41,17 @@ typedef enum __tagM3C_ASM_TokenKind {
     /**
      * \brief String literal.
      *
-     * \details String literal starts with `"` and ends with `"`, EOL, or EOF. If string literals
-     * doesn't ends with `"` \ref M3C_ASM_DIAGNOSTIC_ID_UNTERMINATED_STRING_LITERAL
-     * "UNTERMINATED_STRING_LITERAL" will be emitted.
+     * \details String literal starts with \c '\\\"' and ends with \c '\\\"', EOL, or EOF. If string
+     * literals doesn't ends with \c '\\\"' \ref M3C_ASM_DIAGNOSTIC_ID_UNTERMINATED_STRING_LITERAL
+     * "UNTERMINATED_STRING_LITERAL" diagnostic will be emitted.
      *
      * String literal can contains at least 0 elements. Each element of string can be:
-     * + a printable character (`[ -~]`) except `"` and `\` characters
+     * + a printable character (`[ -~]`) except \c '\\\"' and \c '\\\\' characters
      * + an escape sequences
      *
      * Escape sequences:
      * + `\xN`, where N is one or two hexadecimal digits - arbitrary number of hexadecimal digits
-     * + `\'` - byte 0x27
+     * + \c \\' - byte 0x27
      * + `\"` - byte 0x22
      * + `\?` - byte 0x3f
      * + `\\` - byte 0x5c
@@ -192,15 +192,21 @@ typedef enum __tagM3C_ASM_TokenKind {
 #define M3C_ASM_Token_MAX_CLEN ((m3c_u32)M3C_U16_MAX * (m3c_u32)M3C_U16_MAX)
 
 /**
- * \brief Value of the token.
+ * \brief Lexeme - the "value" of the token.
  */
 typedef union __tagM3C_ASM_Lexeme {
     /**
      * \brief Integer value.
+     *
+     * \details Used by \ref M3C_ASM_TOKEN_KIND_NUMBER "NUMBER" token type.
      */
     m3c_i32 num;
     /**
      * \brief Handle of the string lexeme.
+     *
+     * \details Used by the following token types:
+     * + \ref M3C_ASM_TOKEN_KIND_SYMBOL "SYMBOL"
+     * + \ref M3C_ASM_TOKEN_KIND_STRING "STRING"
      *
      * \note This handle in the current implementation corresponds to the index in \ref
      * __tagM3C_ASM_PreProc::stringPool "preproc's string pool".
@@ -229,7 +235,9 @@ struct __tagM3C_ASM_Token {
      * \brief Parsed lexeme of the token.
      *
      * \warning Only tokens of the following types have their own lexemes:
-     * + \ref M3C_ASM_TOKEN_KIND_SYMBOL "SYMBOL"
+     * + \ref M3C_ASM_TOKEN_KIND_NUMBER "NUMBER" (using #M3C_ASM_Lexeme::num)
+     * + \ref M3C_ASM_TOKEN_KIND_SYMBOL "SYMBOL" (using #M3C_ASM_Lexeme::hStr)
+     * + \ref M3C_ASM_TOKEN_KIND_STRING "STRING" (using #M3C_ASM_Lexeme::hStr)
      */
     M3C_ASM_Lexeme lexeme;
     /**
