@@ -96,6 +96,14 @@ typedef signed long long m3c_i32;
 #    ifndef FORBIT_USE_OF_STDTYPES
 #        include <stddef.h>
 typedef size_t m3c_size_t;
+#        ifndef M3C_SIZE_MAX
+#            if __STDC_VERSION__ >= 199901L
+#                include <stdint.h>
+#                define M3C_SIZE_MAX SIZE_MAX
+#            else
+#                error "M3C_SIZE_MAX is not manually defined and there is no SIZE_MAX before C99"
+#            endif
+#        endif
 #    else
 #        error "m3c_size_t is not defined and FORBIT_TO_USE_STDTYPES is defined"
 #    endif

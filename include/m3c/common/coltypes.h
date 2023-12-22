@@ -82,8 +82,9 @@ void const *M3C_EchoFn(void const *obj, void const *arg);
  * \param[in]     elem     pointer to the element to be pushed
  * \param         elemSize size of element in bytes
  * \return
- * + M3C_ERROR_OK
- * + M3C_ERROR_OOM - if failed to realloc
+ * + #M3C_ERROR_OK
+ * + #M3C_ERROR_OOB
+ * + #M3C_ERROR_OOM - if failed to realloc
  */
 M3C_ERROR
 M3C_VEC_Push_impl(
@@ -104,6 +105,23 @@ M3C_VEC_Push_impl(
  */
 M3C_ERROR
 M3C_VEC_ReserveExact_impl(void **buf, m3c_size_t *cap, m3c_size_t elemSize, m3c_size_t newCap);
+
+/**
+ * \brief Increases the capacity of the vector so that it can hold at least `n` new elements.
+ *
+ * \param[in,out] buf      pointer to the pointer to the buffer
+ * \param[in]     len      pointer to the buffer length
+ * \param[in,out] cap      pointer to the buffer capacity
+ * \param         elemSize size of the vector element in bytes
+ * \param         n        number of new elements
+ * \return
+ * + #M3C_ERROR_OK
+ * + #M3C_ERROR_OOB
+ * + #M3C_ERROR_OOM - if failed to realloc
+ */
+M3C_ERROR M3C_VEC_ReserveUnused_impl(
+    void **buf, m3c_size_t const *len, m3c_size_t *cap, m3c_size_t elemSize, m3c_size_t n
+);
 
 /**
  * \brief Binary searches the array.
@@ -148,8 +166,9 @@ M3C_ERROR M3C_ARR_BSearch_impl(
  * \param[in]     ELEM pointer to the element to be pushed
  *
  * \return
- * + M3C_ERROR_OK
- * + M3C_ERROR_OOM - if failed to realloc
+ * + #M3C_ERROR_OK
+ * + #M3C_ERROR_OOB
+ * + #M3C_ERROR_OOM - if failed to realloc
  */
 #define M3C_VEC_PUSH(TYPE, VEC, ELEM)                                                              \
     M3C_VEC_Push_impl((void **)&(VEC)->data, &(VEC)->len, &(VEC)->cap, ELEM, sizeof(TYPE))
@@ -167,6 +186,20 @@ M3C_ERROR M3C_ARR_BSearch_impl(
  */
 #define M3C_VEC_RESERVE_EXACT(TYPE, VEC, NEW_CAP)                                                  \
     M3C_VEC_ReserveExact_impl((void **)&(VEC)->data, &(VEC)->cap, sizeof(TYPE), (NEW_CAP))
+
+/**
+ * \brief Increases the capacity of the vector so that it can hold at least `N` new elements.
+ *
+ * \param         TYPE    type of vector element
+ * \param[in,out] VEC     pointer to the vector struct
+ * \param         N       number of new elements
+ * \return
+ * + #M3C_ERROR_OK
+ * + #M3C_ERROR_OOB
+ * + #M3C_ERROR_OOM - if failed to realloc
+ */
+#define M3C_VEC_RESERVE_UNUSED(TYPE, VEC, N)                                                       \
+    M3C_VEC_ReserveUnused_impl((void **)&(VEC)->data, &(VEC)->len, &(VEC)->cap, sizeof(TYPE), (N))
 
 /**
  * \brief Binary searches the array.
