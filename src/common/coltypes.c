@@ -10,28 +10,54 @@ M3C_ERROR
 M3C_VEC_Push_impl(
     void **buf, m3c_size_t *len, m3c_size_t *cap, void const *elem, m3c_size_t elemSize
 ) {
-    m3c_size_t newCap;
+    M3C_ERROR reserveUnusedRes;
 
-    if (*len == *cap) {
-        newCap = *cap == 0 ? 1 : *cap + *cap;
-
-        if (M3C_VEC_Reserve_impl(buf, cap, elemSize, newCap) == M3C_ERROR_OOM)
-            return M3C_ERROR_OOM;
-    }
+    reserveUnusedRes = M3C_VEC_ReserveUnused_impl(buf, len, cap, elemSize, 1);
+    if (reserveUnusedRes != M3C_ERROR_OK)
+        return reserveUnusedRes;
 
     m3c_memcpy((char *)*buf + elemSize * (*len), elem, elemSize);
     ++(*len);
     return M3C_ERROR_OK;
 }
 
+M3C_ERROR M3C_VEC_ReserveUnused_impl(
+    void **buf, m3c_size_t const *len, m3c_size_t *cap, m3c_size_t elemSize, m3c_size_t n
+) {
+    m3c_size_t newCap;
+    m3c_size_t doubledCap;
+    m3c_size_t minCap; /* minimal capacity that can hold all new elements */
+
+    /* NOTE: checking that `n + *len` won't overflow */
+    if (n > M3C_SIZE_MAX - *len)
+        return M3C_ERROR_OOB;
+    minCap = n + *len;
+
+    /* NOTE: avoiding overflow of `*cap + *cap`. Arithmetically it's equivalent to
+     * `min(M3C_SIZE_MAX, *cap + *cap)` */
+    doubledCap = *cap > M3C_SIZE_MAX - *cap ? M3C_SIZE_MAX : *cap + *cap;
+
+    newCap = *cap == 0 ? minCap : m3c_max(doubledCap, minCap);
+
+    return M3C_VEC_ReserveExact_impl(buf, cap, elemSize, newCap);
+}
+
 M3C_ERROR
-M3C_VEC_Reserve_impl(void **buf, m3c_size_t *cap, m3c_size_t elemSize, m3c_size_t newCap) {
+M3C_VEC_ReserveExact_impl(void **buf, m3c_size_t *cap, m3c_size_t elemSize, m3c_size_t newCap) {
     void *newPtr;
+    m3c_size_t byteCap; /* capacity in bytes */
 
     if (*cap >= newCap)
         return M3C_ERROR_OK;
 
-    newPtr = m3c_realloc(*buf, elemSize * newCap);
+    /* NOTE: checking overflow of `newCap * elemSize`.
+     * The code is from https://stackoverflow.com/a/1815371 */
+    byteCap = newCap * elemSize;
+    if (newCap != 0 && byteCap / newCap != elemSize) {
+        return M3C_ERROR_OOB;
+    }
+
+    newPtr = m3c_realloc(*buf, byteCap);
     if (!newPtr)
         return M3C_ERROR_OOM;
     *buf = newPtr;
