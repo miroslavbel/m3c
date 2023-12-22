@@ -91,7 +91,7 @@ M3C_VEC_Push_impl(
 );
 
 /**
- * \brief Increase the capacity of the vector to a value that's greater or equal to `newCap`.
+ * \brief Increase the capacity of the vector to a value that's equal to `newCap`.
  *
  * \param[in,out] buf      pointer to the pointer to the buffer
  * \param[in,out] cap      pointer to the buffer capacity
@@ -103,7 +103,7 @@ M3C_VEC_Push_impl(
  * + #M3C_ERROR_OOM - if failed to realloc
  */
 M3C_ERROR
-M3C_VEC_Reserve_impl(void **buf, m3c_size_t *cap, m3c_size_t elemSize, m3c_size_t newCap);
+M3C_VEC_ReserveExact_impl(void **buf, m3c_size_t *cap, m3c_size_t elemSize, m3c_size_t newCap);
 
 /**
  * \brief Binary searches the array.
@@ -155,7 +155,7 @@ M3C_ERROR M3C_ARR_BSearch_impl(
     M3C_VEC_Push_impl((void **)&(VEC)->data, &(VEC)->len, &(VEC)->cap, ELEM, sizeof(TYPE))
 
 /**
- * \brief Increase the capacity of `VEC` to a value that's greater or equal to `NEW_CAP`.
+ * \brief Increase the capacity of `VEC` to a value that's equal to `NEW_CAP`.
  *
  * \param         TYPE    type of vector element
  * \param[in,out] VEC     pointer to the vector struct
@@ -165,8 +165,8 @@ M3C_ERROR M3C_ARR_BSearch_impl(
  * + #M3C_ERROR_OOB - if `sizeof(TYPE) * NEW_CAP` will overflow.
  * + #M3C_ERROR_OOM - if failed to realloc
  */
-#define M3C_VEC_RESERVE(TYPE, VEC, NEW_CAP)                                                        \
-    M3C_VEC_Reserve_impl((void **)&(VEC)->data, &(VEC)->cap, sizeof(TYPE), (NEW_CAP))
+#define M3C_VEC_RESERVE_EXACT(TYPE, VEC, NEW_CAP)                                                  \
+    M3C_VEC_ReserveExact_impl((void **)&(VEC)->data, &(VEC)->cap, sizeof(TYPE), (NEW_CAP))
 
 /**
  * \brief Binary searches the array.

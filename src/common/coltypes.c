@@ -15,7 +15,7 @@ M3C_VEC_Push_impl(
     if (*len == *cap) {
         newCap = *cap == 0 ? 1 : *cap + *cap;
 
-        if (M3C_VEC_Reserve_impl(buf, cap, elemSize, newCap) == M3C_ERROR_OOM)
+        if (M3C_VEC_ReserveExact_impl(buf, cap, elemSize, newCap) == M3C_ERROR_OOM)
             return M3C_ERROR_OOM;
     }
 
@@ -25,7 +25,7 @@ M3C_VEC_Push_impl(
 }
 
 M3C_ERROR
-M3C_VEC_Reserve_impl(void **buf, m3c_size_t *cap, m3c_size_t elemSize, m3c_size_t newCap) {
+M3C_VEC_ReserveExact_impl(void **buf, m3c_size_t *cap, m3c_size_t elemSize, m3c_size_t newCap) {
     void *newPtr;
     m3c_size_t byteCap; /* capacity in bytes */
 

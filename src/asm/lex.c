@@ -1212,7 +1212,7 @@ M3C_ERROR __M3C_ASM_lexemizeString(M3C_ASM_Lexer *lexer) {
                     } else
                         cp = d1;
 
-                    if (M3C_VEC_RESERVE(m3c_u8, &vec, vec.len + 1) != M3C_ERROR_OK) {
+                    if (M3C_VEC_RESERVE_EXACT(m3c_u8, &vec, vec.len + 1) != M3C_ERROR_OK) {
                         m3c_free(vec.data);
                         return M3C_ERROR_OOM;
                     }
@@ -1224,7 +1224,7 @@ M3C_ERROR __M3C_ASM_lexemizeString(M3C_ASM_Lexer *lexer) {
             }
         }
 
-        if (M3C_VEC_RESERVE(m3c_u8, &vec, vec.len + 4) != M3C_ERROR_OK) {
+        if (M3C_VEC_RESERVE_EXACT(m3c_u8, &vec, vec.len + 4) != M3C_ERROR_OK) {
             m3c_free(vec.data);
             return M3C_ERROR_OOM;
         }
