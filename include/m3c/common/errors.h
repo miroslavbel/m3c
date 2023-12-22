@@ -28,7 +28,11 @@ typedef enum __tagM3C_ERROR {
     /**
      * \brief Requested element is not found.
      */
-    M3C_ERROR_NOT_FOUND = 5
+    M3C_ERROR_NOT_FOUND = 5,
+    /**
+     * \brief Out Of Bounds.
+     */
+    M3C_ERROR_OOB = 6
 } M3C_ERROR;
 
 #endif /* _M3C_INCGUARD_ERRORS_H */

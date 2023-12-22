@@ -27,11 +27,19 @@ M3C_VEC_Push_impl(
 M3C_ERROR
 M3C_VEC_Reserve_impl(void **buf, m3c_size_t *cap, m3c_size_t elemSize, m3c_size_t newCap) {
     void *newPtr;
+    m3c_size_t byteCap; /* capacity in bytes */
 
     if (*cap >= newCap)
         return M3C_ERROR_OK;
 
-    newPtr = m3c_realloc(*buf, elemSize * newCap);
+    /* NOTE: checking overflow of `newCap * elemSize`.
+     * The code is from https://stackoverflow.com/a/1815371 */
+    byteCap = newCap * elemSize;
+    if (newCap != 0 && byteCap / newCap != elemSize) {
+        return M3C_ERROR_OOB;
+    }
+
+    newPtr = m3c_realloc(*buf, byteCap);
     if (!newPtr)
         return M3C_ERROR_OOM;
     *buf = newPtr;

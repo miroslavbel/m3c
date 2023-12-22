@@ -98,8 +98,9 @@ M3C_VEC_Push_impl(
  * \param         elemSize size of the vector element in bytes
  * \param         newCap   new capacity of the buffer, in number of elements
  * \return
- * + M3C_ERROR_OK
- * + M3C_ERROR_OOM - if failed to realloc
+ * + #M3C_ERROR_OK
+ * + #M3C_ERROR_OOB - if `elemSize * newCap` will overflow
+ * + #M3C_ERROR_OOM - if failed to realloc
  */
 M3C_ERROR
 M3C_VEC_Reserve_impl(void **buf, m3c_size_t *cap, m3c_size_t elemSize, m3c_size_t newCap);
@@ -160,8 +161,9 @@ M3C_ERROR M3C_ARR_BSearch_impl(
  * \param[in,out] VEC     pointer to the vector struct
  * \param         NEW_CAP new capacity of the vector, in number of elements
  * \return
- * + M3C_ERROR_OK
- * + M3C_ERROR_OOM - if failed to realloc
+ * + #M3C_ERROR_OK
+ * + #M3C_ERROR_OOB - if `sizeof(TYPE) * NEW_CAP` will overflow.
+ * + #M3C_ERROR_OOM - if failed to realloc
  */
 #define M3C_VEC_RESERVE(TYPE, VEC, NEW_CAP)                                                        \
     M3C_VEC_Reserve_impl((void **)&(VEC)->data, &(VEC)->cap, sizeof(TYPE), (NEW_CAP))
