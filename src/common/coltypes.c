@@ -105,3 +105,17 @@ M3C_ERROR M3C_ARR_BSearch_impl(
             min = *n + 1;
     }
 }
+
+M3C_ERROR M3C_ARR_CopyWithin_impl(
+    void *buf, m3c_size_t len, m3c_size_t elemSize, m3c_size_t dstI, m3c_size_t srcI, m3c_size_t n
+) {
+    /* NOTE: checking that
+     * 1. dstI < len && dstI + n <= len
+     * 2. srcI < len && srcI + n <= len
+     */
+    if (dstI >= len || n > len - dstI || srcI >= len || n > len - srcI)
+        return M3C_ERROR_OOB;
+
+    m3c_memmove((char *)buf + dstI * elemSize, (char *)buf + srcI * elemSize, n * elemSize);
+    return M3C_ERROR_OK;
+}

@@ -124,6 +124,24 @@ M3C_ERROR M3C_VEC_ReserveUnused_impl(
 );
 
 /**
+ * \brief Copies elements within an array.
+ *
+ * \param[in,out] buf      pointer to the first element of the array
+ * \param         len      length of the array
+ * \param         elemSize size of the array element in bytes
+ * \param         dstI     index of the element in place of which the copying is performed
+ * \param         srcI     index of the first element to be copied
+ * \param         n        number of elements to be copied
+ *
+ * \return
+ * + #M3C_ERROR_OK
+ * + #M3C_ERROR_OOB - if either `srcI + n` or `dstI + n` are out of bounds
+ */
+M3C_ERROR M3C_ARR_CopyWithin_impl(
+    void *buf, m3c_size_t len, m3c_size_t elemSize, m3c_size_t dstI, m3c_size_t srcI, m3c_size_t n
+);
+
+/**
  * \brief Binary searches the array.
  *
  * \warning The array must be sorted with the order consistent with the sort order of `cmpFn`.
@@ -153,6 +171,38 @@ M3C_ERROR M3C_ARR_BSearch_impl(
     void const *buf, m3c_size_t len, m3c_size_t elemSize, void const *elem, M3C_CMP_FN *cmpFn,
     m3c_size_t *n, M3C_KEY_FN *keyFn, void *keyArg
 );
+
+/**
+ * \brief Copies elements within an array.
+ *
+ * \param         TYPE  type of array element
+ * \param[in,out] ARR   pointer to the array struct
+ * \param         DST_I index of the element in place of which the copying is performed
+ * \param         SRC_I index of the first element to be copied
+ * \param         N     number of elements to be copied
+ *
+ * \return
+ * + #M3C_ERROR_OK
+ * + #M3C_ERROR_OOB - if any of `SRC_I + N` and `DST_I + N` are out of bounds
+ */
+#define M3C_ARR_COPY_WITHIN(TYPE, ARR, DST_I, SRC_I, N)                                            \
+    M3C_ARR_CopyWithin_impl((void *)(ARR)->data, (ARR)->len, sizeof(TYPE), (DST_I), (SRC_I), (N))
+
+/**
+ * \brief Copies elements within a vector.
+ *
+ * \param         TYPE  type of vector element
+ * \param[in,out] VEC   pointer to the vector struct
+ * \param         DST_I index of the element in place of which the copying is performed
+ * \param         SRC_I index of the first element to be copied
+ * \param         N     number of elements to be copied
+ *
+ * \return
+ * + #M3C_ERROR_OK
+ * + #M3C_ERROR_OOB - if any of `SRC_I + N` and `DST_I + N` are out of bounds
+ */
+#define M3C_VEC_COPY_WITHIN(TYPE, VEC, DST_I, SRC_I, N)                                            \
+    M3C_ARR_COPY_WITHIN(TYPE, VEC, DST_I, SRC_I, N)
 
 /**
  * \brief Pushes `ELEM` to the `VEC`.
