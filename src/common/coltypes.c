@@ -119,3 +119,26 @@ M3C_ERROR M3C_ARR_CopyWithin_impl(
     m3c_memmove((char *)buf + dstI * elemSize, (char *)buf + srcI * elemSize, n * elemSize);
     return M3C_ERROR_OK;
 }
+
+M3C_ERROR M3C_ARR_RShift_impl(
+    void *buf, m3c_size_t len, m3c_size_t elemSize, m3c_size_t startI, m3c_size_t step
+) {
+    m3c_size_t dstI;
+    m3c_size_t n;
+
+    /* NOTE: checking that `startI < len` */
+    if (startI >= len)
+        return M3C_ERROR_OOB;
+
+    /* NOTE: checking that
+     * `dstI < len` as
+     * `startI + step < len` */
+    if (step >= len - startI)
+        return M3C_ERROR_OK; /* noop */
+    dstI = startI + step;
+
+    /* NOTE: we already know that `dstI < len` so this won't overflow */
+    n = len - dstI;
+
+    return M3C_ARR_CopyWithin_impl(buf, len, elemSize, dstI, startI, n);
+}

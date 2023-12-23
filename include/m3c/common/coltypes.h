@@ -142,6 +142,27 @@ M3C_ERROR M3C_ARR_CopyWithin_impl(
 );
 
 /**
+ * \brief Shifts elements of the array to the right.
+ *
+ * \note If the operation is noop, then returns #M3C_ERROR_OK (e.g. if `step` is too big)
+ *
+ * \param[in,out] buf      pointer to the first element of the array
+ * \param         len      length of the array
+ * \param         elemSize size of the array element in bytes
+ * \param         startI   index of the first element to be shifted
+ * \param         step     step of shifting
+ *
+ * \return
+ * + #M3C_ERROR_OK
+ * + #M3C_ERROR_OOB - if `startI` is Out Of Bounds
+ *
+ * \sa #M3C_ARR_CopyWithin_impl
+ */
+M3C_ERROR M3C_ARR_RShift_impl(
+    void *buf, m3c_size_t len, m3c_size_t elemSize, m3c_size_t startI, m3c_size_t step
+);
+
+/**
  * \brief Binary searches the array.
  *
  * \warning The array must be sorted with the order consistent with the sort order of `cmpFn`.
@@ -189,6 +210,25 @@ M3C_ERROR M3C_ARR_BSearch_impl(
     M3C_ARR_CopyWithin_impl((void *)(ARR)->data, (ARR)->len, sizeof(TYPE), (DST_I), (SRC_I), (N))
 
 /**
+ * \brief Shifts elements of the array to the right.
+ *
+ * \note If the operation is noop, then returns #M3C_ERROR_OK (e.g. if `STEP` is too big)
+ *
+ * \param         TYPE    type of array element
+ * \param[in,out] ARR     pointer to the array struct
+ * \param         START_I index of the first element to be shifted
+ * \param         STEP    step of shifting
+ *
+ * \return
+ * + #M3C_ERROR_OK
+ * + #M3C_ERROR_OOB - if `START_I` is Out Of Bounds
+ *
+ * \sa #M3C_ARR_COPY_WITHIN
+ */
+#define M3C_ARR_RSHIFT(TYPE, ARR, START_I, STEP)                                                   \
+    M3C_ARR_RShift_impl((void *)(ARR)->data, (ARR)->len, sizeof(TYPE), (START_I), (STEP))
+
+/**
  * \brief Copies elements within a vector.
  *
  * \param         TYPE  type of vector element
@@ -203,6 +243,24 @@ M3C_ERROR M3C_ARR_BSearch_impl(
  */
 #define M3C_VEC_COPY_WITHIN(TYPE, VEC, DST_I, SRC_I, N)                                            \
     M3C_ARR_COPY_WITHIN(TYPE, VEC, DST_I, SRC_I, N)
+
+/**
+ * \brief Shifts elements of the vector to the right.
+ *
+ * \note If the operation is noop, then returns #M3C_ERROR_OK (e.g. if `STEP` is too big)
+ *
+ * \param         TYPE    type of vector element
+ * \param[in,out] VEC     pointer to the vector struct
+ * \param         START_I index of the first element to be shifted
+ * \param         STEP    step of shifting
+ *
+ * \return
+ * + #M3C_ERROR_OK
+ * + #M3C_ERROR_OOB - if `START_I` is Out Of Bounds
+ *
+ * \sa #M3C_VEC_COPY_WITHIN
+ */
+#define M3C_VEC_RSHIFT(TYPE, VEC, START_I, STEP) M3C_ARR_RSHIFT(TYPE, VEC, START_I, STEP)
 
 /**
  * \brief Pushes `ELEM` to the `VEC`.
