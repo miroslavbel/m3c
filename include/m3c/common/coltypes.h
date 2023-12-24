@@ -1,6 +1,8 @@
 #ifndef _M3C_INCGUARD_COLTYPES_H
 #define _M3C_INCGUARD_COLTYPES_H
 
+#include <m3c/rt/mem.h>
+
 #include <m3c/common/types.h>
 #include <m3c/common/errors.h>
 
@@ -142,6 +144,30 @@ M3C_ERROR M3C_ARR_CopyWithin_impl(
 );
 
 /**
+ * \brief Copies elements within an array.
+ *
+ * \warning To use this macro safely, ensure that:
+ * 1. `DST_I < LEN` and `DST_I + N <= LEN`
+ * 2. `SRC_I < LEN` and `SRC_I + N <= LEN`
+ * where `LEN` is the length of the buffer `BUF`
+ *
+ * \param[in,out] BUF       pointer to the first element of the array
+ * \param         ELEM_SIZE size of the array element in bytes
+ * \param         DST_I     index of the element in place of which the copying is performed
+ * \param         SRC_I     index of the first element to be copied
+ * \param         N         number of elements to be copied
+ *
+ * \return result of the underlying call to `m3c_memmove`
+ *
+ * \sa #M3C_ARR_CopyWithin_impl, #M3C_ARR_COPY_WITHIN_UNSAFE
+ */
+#define M3C_ARR_CopyWithinUnsafe_impl(BUF, ELEM_SIZE, DST_I, SRC_I, N)                             \
+    m3c_memmove(                                                                                   \
+        (void *)((char *)(BUF) + (DST_I) * (ELEM_SIZE)),                                           \
+        (const void *)((char *)(BUF) + (SRC_I) * (ELEM_SIZE)), (N) * (ELEM_SIZE)                   \
+    )
+
+/**
  * \brief Shifts elements of the array to the right.
  *
  * \note If the operation is noop, then returns #M3C_ERROR_OK (e.g. if `step` is too big)
@@ -196,6 +222,27 @@ M3C_ERROR M3C_ARR_BSearch_impl(
 /**
  * \brief Copies elements within an array.
  *
+ * \warning To use this macro safely, ensure that:
+ * 1. `DST_I < LEN` and `DST_I + N <= LEN`
+ * 2. `SRC_I < LEN` and `SRC_I + N <= LEN`
+ * where `LEN` is the length of the array `ARR`
+ *
+ * \param         TYPE  type of array element
+ * \param[in,out] ARR   pointer to the array struct
+ * \param         DST_I index of the element in place of which the copying is performed
+ * \param         SRC_I index of the first element to be copied
+ * \param         N     number of elements to be copied
+ *
+ * \return result of the underlying call to `m3c_memmove`
+ *
+ * \sa #M3C_ARR_COPY_WITHIN, #M3C_ARR_CopyWithinUnsafe_impl
+ */
+#define M3C_ARR_COPY_WITHIN_UNSAFE(TYPE, ARR, DST_I, SRC_I, N)                                     \
+    M3C_ARR_CopyWithinUnsafe_impl((ARR)->data, sizeof(TYPE), DST_I, SRC_I, N)
+
+/**
+ * \brief Copies elements within an array.
+ *
  * \param         TYPE  type of array element
  * \param[in,out] ARR   pointer to the array struct
  * \param         DST_I index of the element in place of which the copying is performed
@@ -227,6 +274,27 @@ M3C_ERROR M3C_ARR_BSearch_impl(
  */
 #define M3C_ARR_RSHIFT(TYPE, ARR, START_I, STEP)                                                   \
     M3C_ARR_RShift_impl((void *)(ARR)->data, (ARR)->len, sizeof(TYPE), (START_I), (STEP))
+
+/**
+ * \brief Copies elements within a vector.
+ *
+ * \warning To use this macro safely, ensure that:
+ * 1. `DST_I < LEN` and `DST_I + N <= LEN`
+ * 2. `SRC_I < LEN` and `SRC_I + N <= LEN`
+ * where `LEN` is the length of the vector `VEC`
+ *
+ * \param         TYPE  type of vector element
+ * \param[in,out] VEC   pointer to the vector struct
+ * \param         DST_I index of the element in place of which the copying is performed
+ * \param         SRC_I index of the first element to be copied
+ * \param         N     number of elements to be copied
+ *
+ * \return result of the underlying call to `m3c_memmove`
+ *
+ * \sa #M3C_VEC_COPY_WITHIN, #M3C_ARR_CopyWithinUnsafe_impl
+ */
+#define M3C_VEC_COPY_WITHIN_UNSAFE(TYPE, VEC, DST_I, SRC_I, N)                                     \
+    M3C_ARR_COPY_WITHIN_UNSAFE(TYPE, VEC, DST_I, SRC_I, N)
 
 /**
  * \brief Copies elements within a vector.

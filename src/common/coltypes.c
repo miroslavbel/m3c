@@ -2,7 +2,6 @@
 #include <m3c/common/macros.h>
 
 #include <m3c/rt/alloc.h>
-#include <m3c/rt/mem.h>
 
 void const *M3C_EchoFn(void const *obj, void const *arg) { return obj; }
 
@@ -115,8 +114,8 @@ M3C_ERROR M3C_ARR_CopyWithin_impl(
      */
     if (dstI >= len || n > len - dstI || srcI >= len || n > len - srcI)
         return M3C_ERROR_OOB;
+    M3C_ARR_CopyWithinUnsafe_impl(buf, elemSize, dstI, srcI, n);
 
-    m3c_memmove((char *)buf + dstI * elemSize, (char *)buf + srcI * elemSize, n * elemSize);
     return M3C_ERROR_OK;
 }
 
