@@ -126,6 +126,34 @@ M3C_ERROR M3C_VEC_ReserveUnused_impl(
 );
 
 /**
+ * \brief Copies elements from `SRC` array to non-overlapping `DST` array.
+ *
+ * \warning To use this macro safely, ensure that:
+ * 1. `DST_I < DST_LEN` and `DST_I + N <= DST_LEN`
+ * 2. `SRC_I < SRC_LEN` and `SRC_I + N <= SRC_LEN`
+ * where `DST_LEN` and `SRC_LEN` are the lengths of buffers `DST` and `SRC`, respectively.
+ *
+ * \param[out] DST       pointer to the first element of the `DST` array
+ * \param      DST_I     index of element in `DST` array in place of which the copying is performed
+ * \param[in]  SRC       pointer to the first element of the `SRC` array
+ * \param      SRC_I     index of the first element in `SRC` array to be copied
+ * \param      ELEM_SIZE size of the array element in bytes
+ * \param      N         number of elements to be copied
+ *
+ * \return result of the underlying call to `m3c_memcpy`
+ */
+#define M3C_ARR_CopyUnsafe_impl(                                                                   \
+    DST, DST_I, /* dst */                                                                          \
+    SRC, SRC_I, /* src */                                                                          \
+    ELEM_SIZE, N                                                                                   \
+)                                                                                                  \
+    m3c_memcpy(                                                                                    \
+        (void *)((char *)(DST) + (DST_I) * (ELEM_SIZE)),       /* dst */                           \
+        (const void *)((char *)(SRC) + (SRC_I) * (ELEM_SIZE)), /* src */                           \
+        (N) * (ELEM_SIZE)                                                                          \
+    )
+
+/**
  * \brief Copies elements within an array.
  *
  * \param[in,out] buf      pointer to the first element of the array
@@ -218,6 +246,26 @@ M3C_ERROR M3C_ARR_BSearch_impl(
     void const *buf, m3c_size_t len, m3c_size_t elemSize, void const *elem, M3C_CMP_FN *cmpFn,
     m3c_size_t *n, M3C_KEY_FN *keyFn, void *keyArg
 );
+
+/**
+ * \brief Copies elements from `SRC` array to non-overlapping `DST` array.
+ *
+ * \warning To use this macro safely, ensure that:
+ * 1. `DST_I < DST_LEN` and `DST_I + N <= DST_LEN`
+ * 2. `SRC_I < SRC_LEN` and `SRC_I + N <= SRC_LEN`
+ * where `DST_LEN` and `SRC_LEN` are the lengths of arrays `DST` and `SRC`, respectively.
+ *
+ * \param         TYPE  type of array element
+ * \param[in,out] DST   pointer to the array struct of `DST` array
+ * \param         DST_I index of element in `DST` array in place of which the copying is performed
+ * \param[in]     SRC   pointer to the array struct of `SRC` array
+ * \param         SRC_I index of the first element in `SRC` array to be copied
+ * \param         N     number of elements to be copied
+ *
+ * \return result of the underlying call to `m3c_memcpy`
+ */
+#define M3C_ARR_COPY_UNSAFE(TYPE, DST, DST_I, SRC, SRC_I, N)                                       \
+    M3C_ARR_CopyUnsafe_impl((DST)->data, DST_I, (SRC)->data, SRC_I, sizeof(TYPE), N)
 
 /**
  * \brief Copies elements within an array.
