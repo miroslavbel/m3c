@@ -154,6 +154,28 @@ M3C_ERROR M3C_VEC_ReserveUnused_impl(
     )
 
 /**
+ * \brief Copies elements from `src` array to non-overlapping `dst` array.
+ *
+ * \param[out] dstBuf   pointer to the first element of the `dst` array
+ * \param      dstLen   length of the `dst` array
+ * \param      dstI     index of element in `dst` array in place of which the copying is performed
+ * \param[in]  srcBuf   pointer to the first element of the `src` array
+ * \param      srcLen   length of the `src` array
+ * \param      srcI     index of the first element in `src` array to be copied
+ * \param      elemSize size of the array element in bytes
+ * \param      n        number of elements to be copied
+ *
+ * \return
+ * + #M3C_ERROR_OK
+ * + #M3C_ERROR_OOB
+ */
+M3C_ERROR M3C_ARR_Copy_impl(
+    void *m3c_restrict dstBuf, m3c_size_t dstLen, m3c_size_t dstI,       /* dst */
+    void const *m3c_restrict srcBuf, m3c_size_t srcLen, m3c_size_t srcI, /* src */
+    m3c_size_t elemSize, m3c_size_t n
+);
+
+/**
  * \brief Copies elements within an array.
  *
  * \param[in,out] buf      pointer to the first element of the array
@@ -266,6 +288,27 @@ M3C_ERROR M3C_ARR_BSearch_impl(
  */
 #define M3C_ARR_COPY_UNSAFE(TYPE, DST, DST_I, SRC, SRC_I, N)                                       \
     M3C_ARR_CopyUnsafe_impl((DST)->data, DST_I, (SRC)->data, SRC_I, sizeof(TYPE), N)
+
+/**
+ * \brief Copies elements from `SRC` array to non-overlapping `DST` array.
+ *
+ * \param         TYPE  type of array element
+ * \param[in,out] DST   pointer to the array struct of `DST` array
+ * \param         DST_I index of element in `DST` array in place of which the copying is performed
+ * \param[in]     SRC   pointer to the array struct of `SRC` array
+ * \param         SRC_I index of the first element in `SRC` array to be copied
+ * \param         N     number of elements to be copied
+ *
+ * \return
+ * + #M3C_ERROR_OK
+ * + #M3C_ERROR_OOB
+ */
+#define M3C_ARR_COPY(TYPE, DST, DST_I, SRC, SRC_I, N)                                              \
+    M3C_ARR_Copy_impl(                                                                             \
+        (void *)(DST)->data, (DST)->len, (DST_I),       /* dst */                                  \
+        (void const *)(SRC)->data, (SRC)->len, (SRC_I), /* src */                                  \
+        sizeof(TYPE), (N)                                                                          \
+    )
 
 /**
  * \brief Copies elements within an array.

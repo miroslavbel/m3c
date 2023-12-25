@@ -119,6 +119,23 @@ M3C_ERROR M3C_ARR_CopyWithin_impl(
     return M3C_ERROR_OK;
 }
 
+M3C_ERROR M3C_ARR_Copy_impl(
+    void *m3c_restrict dstBuf, m3c_size_t dstLen, m3c_size_t dstI,       /* dst */
+    void const *m3c_restrict srcBuf, m3c_size_t srcLen, m3c_size_t srcI, /* src */
+    m3c_size_t elemSize, m3c_size_t n
+) {
+    /* NOTE: checking that
+     * 1. dstI < dstLen && dstI + n <= dstLen
+     * 2. srcI < srcLen && srcI + n <= srcLen
+     */
+    if (dstI >= dstLen || n > dstLen - dstI || /* dst */
+        srcI >= srcLen || n > srcLen - srcI)   /* src */
+        return M3C_ERROR_OOB;
+    M3C_ARR_CopyUnsafe_impl(dstBuf, dstI, srcBuf, srcI, elemSize, n);
+
+    return M3C_ERROR_OK;
+}
+
 M3C_ERROR M3C_ARR_RShift_impl(
     void *buf, m3c_size_t len, m3c_size_t elemSize, m3c_size_t startI, m3c_size_t step
 ) {
