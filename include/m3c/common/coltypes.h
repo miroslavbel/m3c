@@ -218,6 +218,26 @@ M3C_ERROR M3C_ARR_CopyWithin_impl(
 /**
  * \brief Shifts elements of the array to the right.
  *
+ * \warning To use this macro safely, ensure that:
+ * 1. `START_I < LEN`
+ * 2. `STEP < LEN - START_I`
+ *
+ * \param[in,out] BUF       pointer to the first element of the array
+ * \param         LEN       length of the array
+ * \param         ELEM_SIZE size of the array element in bytes
+ * \param         START_I   index of the first element to be shifted
+ * \param         STEP      step of shifting
+ *
+ * \return result of the underlying call to `m3c_memmove`
+ */
+#define M3C_ARR_RShiftUnsafe_impl(BUF, LEN, ELEM_SIZE, START_I, STEP)                              \
+    M3C_ARR_CopyWithinUnsafe_impl(                                                                 \
+        (BUF), (ELEM_SIZE), (START_I) + (STEP), (START_I), (LEN) - ((START_I) + (STEP))            \
+    )
+
+/**
+ * \brief Shifts elements of the array to the right.
+ *
  * \note If the operation is noop, then returns #M3C_ERROR_OK (e.g. if `step` is too big)
  *
  * \param[in,out] buf      pointer to the first element of the array
@@ -328,6 +348,24 @@ M3C_ERROR M3C_ARR_BSearch_impl(
  */
 #define M3C_ARR_COPY_WITHIN_UNSAFE(TYPE, ARR, DST_I, SRC_I, N)                                     \
     M3C_ARR_CopyWithinUnsafe_impl((ARR)->data, sizeof(TYPE), DST_I, SRC_I, N)
+
+/**
+ * \brief Shifts elements of the array to the right.
+ *
+ * \warning To use this macro safely, ensure that:
+ * 1. `START_I < LEN`
+ * 2. `STEP < LEN - START_I`
+ * where `LEN` is the length of the array.
+ *
+ * \param         TYPE      type of array element
+ * \param[in,out] ARR       pointer to the array struct
+ * \param         START_I   index of the first element to be shifted
+ * \param         STEP      step of shifting
+ *
+ * \return result of the underlying call to `m3c_memmove`
+ */
+#define M3C_ARR_RSHIFT_UNSAFE(TYPE, ARR, START_I, STEP)                                            \
+    M3C_ARR_RShiftUnsafe_impl((ARR)->data, (ARR)->len, sizeof(TYPE), START_I, STEP)
 
 /**
  * \brief Copies elements within an array.
