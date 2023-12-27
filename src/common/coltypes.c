@@ -9,11 +9,8 @@ M3C_ERROR
 M3C_VEC_Push_impl(
     void **buf, m3c_size_t *len, m3c_size_t *cap, void const *elem, m3c_size_t elemSize
 ) {
-    M3C_ERROR reserveUnusedRes;
-
-    reserveUnusedRes = M3C_VEC_ReserveUnused_impl(buf, len, cap, elemSize, 1);
-    if (reserveUnusedRes != M3C_ERROR_OK)
-        return reserveUnusedRes;
+    if (M3C_VEC_ReserveUnused_impl(buf, len, cap, elemSize, 1) != M3C_ERROR_OK)
+        return M3C_ERROR_OOM;
 
     m3c_memcpy((char *)*buf + elemSize * (*len), elem, elemSize);
     ++(*len);
@@ -29,7 +26,7 @@ M3C_ERROR M3C_VEC_ReserveUnused_impl(
 
     /* NOTE: checking that `n + *len` won't overflow */
     if (n > M3C_SIZE_MAX - *len)
-        return M3C_ERROR_OOB;
+        return M3C_ERROR_OOM;
     minCap = n + *len;
 
     /* NOTE: avoiding overflow of `*cap + *cap`. Arithmetically it's equivalent to
@@ -52,9 +49,8 @@ M3C_VEC_ReserveExact_impl(void **buf, m3c_size_t *cap, m3c_size_t elemSize, m3c_
     /* NOTE: checking overflow of `newCap * elemSize`.
      * The code is from https://stackoverflow.com/a/1815371 */
     byteCap = newCap * elemSize;
-    if (newCap != 0 && byteCap / newCap != elemSize) {
-        return M3C_ERROR_OOB;
-    }
+    if (newCap != 0 && byteCap / newCap != elemSize)
+        return M3C_ERROR_OOM;
 
     newPtr = m3c_realloc(*buf, byteCap);
     if (!newPtr)

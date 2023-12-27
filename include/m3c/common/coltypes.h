@@ -85,7 +85,6 @@ void const *M3C_EchoFn(void const *obj, void const *arg);
  * \param         elemSize size of element in bytes
  * \return
  * + #M3C_ERROR_OK
- * + #M3C_ERROR_OOB
  * + #M3C_ERROR_OOM - if failed to realloc
  */
 M3C_ERROR
@@ -102,8 +101,7 @@ M3C_VEC_Push_impl(
  * \param         newCap   new capacity of the buffer, in number of elements
  * \return
  * + #M3C_ERROR_OK
- * + #M3C_ERROR_OOB - if `elemSize * newCap` will overflow
- * + #M3C_ERROR_OOM - if failed to realloc
+ * + #M3C_ERROR_OOM - if failed to realloc or `elemSize * newCap` will overflow
  */
 M3C_ERROR
 M3C_VEC_ReserveExact_impl(void **buf, m3c_size_t *cap, m3c_size_t elemSize, m3c_size_t newCap);
@@ -118,8 +116,8 @@ M3C_VEC_ReserveExact_impl(void **buf, m3c_size_t *cap, m3c_size_t elemSize, m3c_
  * \param         n        number of new elements
  * \return
  * + #M3C_ERROR_OK
- * + #M3C_ERROR_OOB
- * + #M3C_ERROR_OOM - if failed to realloc
+ * + #M3C_ERROR_OOM - if failed to realloc or the new capacity in bytes will be greater then
+ * `M3C_SIZE_MAX`
  */
 M3C_ERROR M3C_VEC_ReserveUnused_impl(
     void **buf, m3c_size_t const *len, m3c_size_t *cap, m3c_size_t elemSize, m3c_size_t n
@@ -434,7 +432,6 @@ M3C_ERROR M3C_ARR_BSearch_impl(
  *
  * \return
  * + #M3C_ERROR_OK
- * + #M3C_ERROR_OOB
  * + #M3C_ERROR_OOM - if failed to realloc
  */
 #define M3C_VEC_PUSH(TYPE, VEC, ELEM)                                                              \
@@ -448,8 +445,7 @@ M3C_ERROR M3C_ARR_BSearch_impl(
  * \param         NEW_CAP new capacity of the vector, in number of elements
  * \return
  * + #M3C_ERROR_OK
- * + #M3C_ERROR_OOB - if `sizeof(TYPE) * NEW_CAP` will overflow.
- * + #M3C_ERROR_OOM - if failed to realloc
+ * + #M3C_ERROR_OOM - if failed to realloc or `sizeof(TYPE) * NEW_CAP` will overflow
  */
 #define M3C_VEC_RESERVE_EXACT(TYPE, VEC, NEW_CAP)                                                  \
     M3C_VEC_ReserveExact_impl((void **)&(VEC)->data, &(VEC)->cap, sizeof(TYPE), (NEW_CAP))
@@ -462,8 +458,8 @@ M3C_ERROR M3C_ARR_BSearch_impl(
  * \param         N       number of new elements
  * \return
  * + #M3C_ERROR_OK
- * + #M3C_ERROR_OOB
- * + #M3C_ERROR_OOM - if failed to realloc
+ * + #M3C_ERROR_OOM - if failed to realloc or the new capacity in bytes will be greater then
+ * `M3C_SIZE_MAX`
  */
 #define M3C_VEC_RESERVE_UNUSED(TYPE, VEC, N)                                                       \
     M3C_VEC_ReserveUnused_impl((void **)&(VEC)->data, &(VEC)->len, &(VEC)->cap, sizeof(TYPE), (N))
