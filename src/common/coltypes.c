@@ -61,6 +61,24 @@ M3C_VEC_ReserveExact_impl(void **buf, m3c_size_t *cap, m3c_size_t elemSize, m3c_
     return M3C_ERROR_OK;
 }
 
+M3C_ERROR M3C_VEC_Insert_impl(
+    void **buf, m3c_size_t *len, m3c_size_t *cap, m3c_size_t elemSize, m3c_size_t index,
+    void const *elems, m3c_size_t n
+) {
+
+    if (M3C_VEC_ReserveUnused_impl(buf, len, cap, elemSize, n) != M3C_ERROR_OK)
+        return M3C_ERROR_OOM;
+    (*len) += n;
+
+    /* NOTE: ERROR_OOB - iff `index` is OOB */
+    if (M3C_ARR_RShift_impl(*buf, *len, elemSize, index, n) != M3C_ERROR_OK)
+        return M3C_ERROR_OOB;
+
+    M3C_ARR_CopyUnsafe_impl(*buf, index, elems, 0, elemSize, n);
+
+    return M3C_ERROR_OK;
+}
+
 M3C_ERROR M3C_ARR_BSearch_impl(
     void const *buf, m3c_size_t len, m3c_size_t elemSize, void const *elem, M3C_CMP_FN *cmpFn,
     m3c_size_t *n, M3C_KEY_FN keyFn, void *keyArg

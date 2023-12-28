@@ -73,6 +73,28 @@ typedef void const *(M3C_KEY_FN)(void const *, void *);
 void const *M3C_EchoFn(void const *obj, void const *arg);
 
 /**
+ * \brief Inserts `elems` to the vector at index `index`.
+ *
+ * \param[in,out] buf      pointer to the pointer to the buffer
+ * \param[in,out] len      pointer to the buffer length
+ * \param[in,out] cap      pointer to the buffer capacity
+ * \param         elemSize size of element in bytes
+ * \param         index    index before which the elements will be inserted
+ * \param[in]     elems    pointer to the elements array to be inserted
+ * \param         n        number of elements to insert
+ *
+ * \return
+ * + #M3C_ERROR_OK
+ * + #M3C_ERROR_OOB - if `index` is Out Of Bounds
+ * + #M3C_ERROR_OOM - if failed to realloc or the new capacity in bytes will be greater then
+ * `M3C_SIZE_MAX`
+ */
+M3C_ERROR M3C_VEC_Insert_impl(
+    void **buf, m3c_size_t *len, m3c_size_t *cap, m3c_size_t elemSize, m3c_size_t index,
+    void const *elems, m3c_size_t n
+);
+
+/**
  * \brief Pushes `elem` to the vector specified through `len` and `cap`.
  *
  * \details If it is necessary to reallocate the buffer, sets the new capacity to twice the previous
@@ -456,6 +478,26 @@ M3C_ERROR M3C_ARR_BSearch_impl(
  * \sa #M3C_VEC_COPY_WITHIN
  */
 #define M3C_VEC_RSHIFT(TYPE, VEC, START_I, STEP) M3C_ARR_RSHIFT(TYPE, VEC, START_I, STEP)
+
+/**
+ * \brief Inserts `ELEMS` to the vector at index `INDEX`.
+ *
+ * \param         TYPE  type of vector element
+ * \param[in,out] VEC   pointer to the vector struct
+ * \param         INDEX index before which the elements will be inserted
+ * \param[in]     ELEMS pointer to the elements array to be inserted
+ * \param         N     number of elements to insert
+ *
+ * \return
+ * + #M3C_ERROR_OK
+ * + #M3C_ERROR_OOB - if `index` is Out Of Bounds
+ * + #M3C_ERROR_OOM - if failed to realloc or the new capacity in bytes will be greater then
+ * `M3C_SIZE_MAX`
+ */
+#define M3C_VEC_INSERT(TYPE, VEC, INDEX, ELEMS, N)                                                 \
+    M3C_VEC_Insert_impl(                                                                           \
+        (void **)&(VEC)->data, &(VEC)->len, &(VEC)->cap, sizeof(TYPE), (INDEX), (ELEMS), (N)       \
+    )
 
 /**
  * \brief Pushes `ELEM` to the `VEC`.
