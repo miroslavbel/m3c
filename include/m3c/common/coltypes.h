@@ -95,24 +95,45 @@ M3C_ERROR M3C_VEC_Insert_impl(
 );
 
 /**
- * \brief Pushes `elem` to the vector specified through `len` and `cap`.
+ * \brief Pushes `ELEMS` to the vector.
  *
  * \details If it is necessary to reallocate the buffer, sets the new capacity to twice the previous
  * capacity using addition. Uses #m3c_realloc as an reallocator.
  *
- * \param[in,out] buf      pointer to the pointer to the buffer
- * \param[in,out] len      pointer to the buffer length
- * \param[in,out] cap      pointer to the buffer capacity
- * \param[in]     elem     pointer to the element to be pushed
- * \param         elemSize size of element in bytes
+ * \param[in,out] BUF       pointer to the pointer to the buffer
+ * \param[in,out] LEN       pointer to the buffer length
+ * \param[in,out] CAP       pointer to the buffer capacity
+ * \param[in]     ELEMS     pointer to the elements to be pushed
+ * \param         N         number of elements to be pushed
+ * \param         ELEM_SIZE size of element in bytes
+ *
  * \return
  * + #M3C_ERROR_OK
- * + #M3C_ERROR_OOM - if failed to realloc
+ * + #M3C_ERROR_OOM - if failed to realloc or the new capacity in bytes will be greater then
+ * `M3C_SIZE_MAX`
  */
-M3C_ERROR
-M3C_VEC_Push_impl(
-    void **buf, m3c_size_t *len, m3c_size_t *cap, void const *elem, m3c_size_t elemSize
-);
+#define M3C_VEC_PushN_impl(BUF, LEN, CAP, ELEMS, N, ELEM_SIZE)                                     \
+    M3C_VEC_Insert_impl((BUF), (LEN), (CAP), (ELEM_SIZE), *(LEN), (ELEMS), (N))
+
+/**
+ * \brief Pushes `ELEM` to the vector.
+ *
+ * \details If it is necessary to reallocate the buffer, sets the new capacity to twice the previous
+ * capacity using addition. Uses #m3c_realloc as an reallocator.
+ *
+ * \param[in,out] BUF       pointer to the pointer to the buffer
+ * \param[in,out] LEN       pointer to the buffer length
+ * \param[in,out] CAP       pointer to the buffer capacity
+ * \param[in]     ELEM      pointer to the element to be pushed
+ * \param         ELEM_SIZE size of element in bytes
+ *
+ * \return
+ * + #M3C_ERROR_OK
+ * + #M3C_ERROR_OOM - if failed to realloc or the new capacity in bytes will be greater then
+ * `M3C_SIZE_MAX`
+ */
+#define M3C_VEC_Push_impl(BUF, LEN, CAP, ELEM, ELEM_SIZE)                                          \
+    M3C_VEC_PushN_impl((BUF), (LEN), (CAP), (ELEM), 1, (ELEM_SIZE))
 
 /**
  * \brief Increase the capacity of the vector to a value that's equal to `newCap`.
@@ -500,6 +521,26 @@ M3C_ERROR M3C_ARR_BSearch_impl(
     )
 
 /**
+ * \brief Pushes `ELEMS` to the `VEC`.
+ *
+ * \details If it is necessary to reallocate the buffer, sets the new capacity to twice the previous
+ * capacity using addition. Uses #m3c_realloc as an reallocator. It's a macro over function
+ * #M3C_VEC_Push_impl.
+ *
+ * \param         TYPE  type of vector element
+ * \param[in,out] VEC   pointer to the vector struct
+ * \param[in]     ELEMS pointer to the elements to be pushed
+ * \param         N     number of elements to be pushed
+ *
+ * \return
+ * + #M3C_ERROR_OK
+ * + #M3C_ERROR_OOM - if failed to realloc or the new capacity in bytes will be greater then
+ * `M3C_SIZE_MAX`
+ */
+#define M3C_VEC_PUSH_N(TYPE, VEC, ELEMS, N)                                                        \
+    M3C_VEC_PushN_impl((void **)&(VEC)->data, &(VEC)->len, &(VEC)->cap, (ELEMS), (N), sizeof(TYPE))
+
+/**
  * \brief Pushes `ELEM` to the `VEC`.
  *
  * \details If it is necessary to reallocate the buffer, sets the new capacity to twice the previous
@@ -512,10 +553,10 @@ M3C_ERROR M3C_ARR_BSearch_impl(
  *
  * \return
  * + #M3C_ERROR_OK
- * + #M3C_ERROR_OOM - if failed to realloc
+ * + #M3C_ERROR_OOM - if failed to realloc or the new capacity in bytes will be greater then
+ * `M3C_SIZE_MAX`
  */
-#define M3C_VEC_PUSH(TYPE, VEC, ELEM)                                                              \
-    M3C_VEC_Push_impl((void **)&(VEC)->data, &(VEC)->len, &(VEC)->cap, ELEM, sizeof(TYPE))
+#define M3C_VEC_PUSH(TYPE, VEC, ELEM) M3C_VEC_PUSH_N(TYPE, VEC, ELEM, 1)
 
 /**
  * \brief Increase the capacity of `VEC` to a value that's equal to `NEW_CAP`.

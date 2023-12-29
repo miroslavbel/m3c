@@ -5,18 +5,6 @@
 
 void const *M3C_EchoFn(void const *obj, void const *arg) { return obj; }
 
-M3C_ERROR
-M3C_VEC_Push_impl(
-    void **buf, m3c_size_t *len, m3c_size_t *cap, void const *elem, m3c_size_t elemSize
-) {
-    if (M3C_VEC_ReserveUnused_impl(buf, len, cap, elemSize, 1) != M3C_ERROR_OK)
-        return M3C_ERROR_OOM;
-
-    m3c_memcpy((char *)*buf + elemSize * (*len), elem, elemSize);
-    ++(*len);
-    return M3C_ERROR_OK;
-}
-
 M3C_ERROR M3C_VEC_ReserveUnused_impl(
     void **buf, m3c_size_t const *len, m3c_size_t *cap, m3c_size_t elemSize, m3c_size_t n
 ) {
