@@ -2,24 +2,8 @@
 #include <m3c/common/macros.h>
 
 #include <m3c/rt/alloc.h>
-#include <m3c/rt/mem.h>
 
 void const *M3C_EchoFn(void const *obj, void const *arg) { return obj; }
-
-M3C_ERROR
-M3C_VEC_Push_impl(
-    void **buf, m3c_size_t *len, m3c_size_t *cap, void const *elem, m3c_size_t elemSize
-) {
-    M3C_ERROR reserveUnusedRes;
-
-    reserveUnusedRes = M3C_VEC_ReserveUnused_impl(buf, len, cap, elemSize, 1);
-    if (reserveUnusedRes != M3C_ERROR_OK)
-        return reserveUnusedRes;
-
-    m3c_memcpy((char *)*buf + elemSize * (*len), elem, elemSize);
-    ++(*len);
-    return M3C_ERROR_OK;
-}
 
 M3C_ERROR M3C_VEC_ReserveUnused_impl(
     void **buf, m3c_size_t const *len, m3c_size_t *cap, m3c_size_t elemSize, m3c_size_t n
@@ -30,7 +14,7 @@ M3C_ERROR M3C_VEC_ReserveUnused_impl(
 
     /* NOTE: checking that `n + *len` won't overflow */
     if (n > M3C_SIZE_MAX - *len)
-        return M3C_ERROR_OOB;
+        return M3C_ERROR_OOM;
     minCap = n + *len;
 
     /* NOTE: avoiding overflow of `*cap + *cap`. Arithmetically it's equivalent to
@@ -53,15 +37,32 @@ M3C_VEC_ReserveExact_impl(void **buf, m3c_size_t *cap, m3c_size_t elemSize, m3c_
     /* NOTE: checking overflow of `newCap * elemSize`.
      * The code is from https://stackoverflow.com/a/1815371 */
     byteCap = newCap * elemSize;
-    if (newCap != 0 && byteCap / newCap != elemSize) {
-        return M3C_ERROR_OOB;
-    }
+    if (newCap != 0 && byteCap / newCap != elemSize)
+        return M3C_ERROR_OOM;
 
     newPtr = m3c_realloc(*buf, byteCap);
     if (!newPtr)
         return M3C_ERROR_OOM;
     *buf = newPtr;
     *cap = newCap;
+
+    return M3C_ERROR_OK;
+}
+
+M3C_ERROR M3C_VEC_Insert_impl(
+    void **buf, m3c_size_t *len, m3c_size_t *cap, m3c_size_t elemSize, m3c_size_t index,
+    void const *elems, m3c_size_t n
+) {
+
+    if (M3C_VEC_ReserveUnused_impl(buf, len, cap, elemSize, n) != M3C_ERROR_OK)
+        return M3C_ERROR_OOM;
+    (*len) += n;
+
+    /* NOTE: ERROR_OOB - iff `index` is OOB */
+    if (M3C_ARR_RShift_impl(*buf, *len, elemSize, index, n) != M3C_ERROR_OK)
+        return M3C_ERROR_OOB;
+
+    M3C_ARR_CopyUnsafe_impl(*buf, index, elems, 0, elemSize, n);
 
     return M3C_ERROR_OK;
 }
@@ -104,4 +105,58 @@ M3C_ERROR M3C_ARR_BSearch_impl(
         else
             min = *n + 1;
     }
+}
+
+M3C_ERROR M3C_ARR_CopyWithin_impl(
+    void *buf, m3c_size_t len, m3c_size_t elemSize, m3c_size_t dstI, m3c_size_t srcI, m3c_size_t n
+) {
+    /* NOTE: checking that
+     * 1. dstI < len && dstI + n <= len
+     * 2. srcI < len && srcI + n <= len
+     */
+    if (dstI >= len || n > len - dstI || srcI >= len || n > len - srcI)
+        return M3C_ERROR_OOB;
+    M3C_ARR_CopyWithinUnsafe_impl(buf, elemSize, dstI, srcI, n);
+
+    return M3C_ERROR_OK;
+}
+
+M3C_ERROR M3C_ARR_Copy_impl(
+    void *m3c_restrict dstBuf, m3c_size_t dstLen, m3c_size_t dstI,       /* dst */
+    void const *m3c_restrict srcBuf, m3c_size_t srcLen, m3c_size_t srcI, /* src */
+    m3c_size_t elemSize, m3c_size_t n
+) {
+    /* NOTE: checking that
+     * 1. dstI < dstLen && dstI + n <= dstLen
+     * 2. srcI < srcLen && srcI + n <= srcLen
+     */
+    if (dstI >= dstLen || n > dstLen - dstI || /* dst */
+        srcI >= srcLen || n > srcLen - srcI)   /* src */
+        return M3C_ERROR_OOB;
+    M3C_ARR_CopyUnsafe_impl(dstBuf, dstI, srcBuf, srcI, elemSize, n);
+
+    return M3C_ERROR_OK;
+}
+
+M3C_ERROR M3C_ARR_RShift_impl(
+    void *buf, m3c_size_t len, m3c_size_t elemSize, m3c_size_t startI, m3c_size_t step
+) {
+    m3c_size_t dstI;
+    m3c_size_t n;
+
+    /* NOTE: checking that `startI < len` */
+    if (startI >= len)
+        return M3C_ERROR_OOB;
+
+    /* NOTE: checking that
+     * `dstI < len` as
+     * `startI + step < len` */
+    if (step >= len - startI)
+        return M3C_ERROR_OK; /* noop */
+    dstI = startI + step;
+
+    /* NOTE: we already know that `dstI < len` so this won't overflow */
+    n = len - dstI;
+
+    return M3C_ARR_CopyWithin_impl(buf, len, elemSize, dstI, startI, n);
 }

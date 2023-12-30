@@ -8,6 +8,8 @@
 
 #define m3c_memcpy(dest, src, count) memcpy(dest, src, count)
 
+#define m3c_memmove(dest, src, count) memmove(dest, src, count)
+
 /**
  * \brief Fills `dest` with the contents of `src`. The specified `len` and `count` parameters
  * determine the length and number of iterations of the copying process, respectively.
