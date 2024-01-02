@@ -74,7 +74,6 @@
  * \details The lexer must point to the first character of the token.
  */
 #define TOK_START                                                                                  \
-    lexer->token.ptr = lexer->ptr;                                                                 \
     lexer->token.start = lexer->pos;                                                               \
     lexer->token.lexeme.hStr = 0;                                                                  \
     /* save info for token rereading */                                                            \
