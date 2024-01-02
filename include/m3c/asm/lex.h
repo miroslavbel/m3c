@@ -225,13 +225,6 @@ typedef union __tagM3C_ASM_Lexeme {
  */
 struct __tagM3C_ASM_Token {
     /**
-     * \brief Pointer to the first byte of the token.
-     *
-     * \note Pointer to the file buffer is used, as the following stages will require access to the
-     * token bytes.
-     */
-    m3c_u8 const *ptr;
-    /**
      * \brief Parsed lexeme of the token.
      *
      * \warning Only tokens of the following types have their own lexemes:
