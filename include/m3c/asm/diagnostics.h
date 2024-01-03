@@ -143,6 +143,10 @@ typedef enum __tagM3C_ASM_DiagnosticId {
  */
 typedef struct __tagM3C_ASM_DiagnosticsData {
     /**
+     * \brief Handle of the nearest token starting before the diagnostic starts.
+     */
+    M3C_ASM_hToken hToken;
+    /**
      * \brief Start position.
      */
     M3C_ASM_Position start;
@@ -150,10 +154,6 @@ typedef struct __tagM3C_ASM_DiagnosticsData {
      * \brief End position (exclusive).
      */
     M3C_ASM_Position end;
-    /**
-     * \brief Handle of include information.
-     */
-    M3C_hINCLUDE hInclude;
 } M3C_ASM_DiagnosticsData;
 
 #endif /* _M3C_INCGUARD_ASM_DIAGNOSTICS_H */
