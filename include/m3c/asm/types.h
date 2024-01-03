@@ -17,9 +17,11 @@ typedef M3C_VEC(M3C_ASM_Token) M3C_ASM_Tokens;
  **************************************************************************************************/
 
 /**
- * \brief Handle of include information.
+ * \brief Handle of specific token.
+ *
+ * \details Corresponds to the index of the token in #M3C_ASM_Document::tokens.
  */
-typedef m3c_u16 M3C_hINCLUDE;
+typedef m3c_u32 M3C_ASM_hToken;
 
 typedef struct __tagM3C_ASM_Document M3C_ASM_Document;
 

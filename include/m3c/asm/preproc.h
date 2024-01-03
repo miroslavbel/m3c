@@ -170,22 +170,31 @@ struct __tagM3C_ASM_Document {
     /**
      * \brief Lexer diagnostics.
      *
-     * \details Possible diagnostics:
+     * \details \ref M3C_ASM_DiagnosticsData::hToken "DiagnosticsData::hToken" of all diagnostics
+     * must correspond to the index of token in \ref M3C_ASM_Document::tokens "Document::tokens".
+     *
+     * Possible diagnostics:
      * + \ref M3C_ASM_DIAGNOSTIC_ID_INVALID_ENCODING "INVALID_ENCODING"
      * + \ref M3C_ASM_DIAGNOSTIC_ID_UNRECOGNIZED_TOKEN "UNRECOGNIZED_TOKEN"
+     * + \ref M3C_ASM_DIAGNOSTIC_ID_LEADING_ZEROS_ARE_NOT_PERMITTED
+     * "LEADING_ZEROS_ARE_NOT_PERMITTED"
+     * + \ref M3C_ASM_DIAGNOSTIC_ID_INVALID_BASE_PREFIX "INVALID_BASE_PREFIX"
+     * + \ref M3C_ASM_DIAGNOSTIC_ID_DIGIT_SEPARATOR_CANNOT_APPEAR_HERE
+     * "DIGIT_SEPARATOR_CANNOT_APPEAR_HERE"
+     * + \ref M3C_ASM_DIAGNOSTIC_ID_NUMBER_LITERAL_MUST_CONTAIN_AT_LEAST_ONE_DIGIT
+     * "NUMBER_LITERAL_MUST_CONTAIN_AT_LEAST_ONE_DIGIT"
+     * + \ref M3C_ASM_DIAGNOSTIC_ID_INVALID_DIGIT_FOR_THIS_BASE_PREFIX
+     * "INVALID_DIGIT_FOR_THIS_BASE_PREFIX"
+     * + \ref M3C_ASM_DIAGNOSTIC_ID_UNTERMINATED_STRING_LITERAL "UNTERMINATED_STRING_LITERAL"
+     * + \ref M3C_ASM_DIAGNOSTIC_ID_UNKNOWN_ESCAPE_SEQUENCE "UNKNOWN_ESCAPE_SEQUENCE"
+     * + \ref M3C_ASM_DIAGNOSTIC_ID_X_USED_WITH_NO_FOLLOWING_HEX_DIGITS
+     * "X_USED_WITH_NO_FOLLOWING_HEX_DIGITS"
+     * + \ref M3C_ASM_DIAGNOSTIC_ID_NUMBER_CONSTANT_IS_TOO_LARGE "NUMBER_CONSTANT_IS_TOO_LARGE"
      *
      * \note The diagnostics will be the same for the same document. There is no need to calculate
      * them each time the same document is included.
      */
     M3C_Diagnostics diagnostics;
-    /**
-     * \brief Handle of the include information (by which the document was included for the
-     * **first** time).
-     *
-     * \note The same document can be included many times from different documents (and even
-     * explicitly by the user itself as an entry document).
-     */
-    M3C_hINCLUDE hInclude;
 };
 
 /**

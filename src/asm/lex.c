@@ -115,13 +115,13 @@
  */
 #define DIAG_START_FROM_LEXER(diag)                                                                \
     (diag)->data.ASM.start = lexer->pos;                                                           \
-    (diag)->data.ASM.hInclude = lexer->hInclude
+    (diag)->data.ASM.hToken = lexer->tokens->len
 /**
  * \brief Sets the diagnostic start position from the token start position.
  */
 #define DIAG_START_FROM_TOKEN(diag)                                                                \
     (diag)->data.ASM.start = lexer->token.start;                                                   \
-    (diag)->data.ASM.hInclude = lexer->hInclude
+    (diag)->data.ASM.hToken = lexer->tokens->len
 /**
  * \brief Sets the end position of the diagnostic.
  *
@@ -273,7 +273,6 @@ typedef struct __tagM3C_ASM_Lexer {
      * \brief Fragment, where the actual token has started.
      */
     M3C_ASM_Fragment *fragment2;
-    M3C_hINCLUDE hInclude;
     /**
      * \brief Preproc's stringPool.
      */
@@ -1618,7 +1617,6 @@ M3C_ERROR M3C_ASM_lex(M3C_ASM_PreProc *preproc, m3c_u32 hDocument) {
 
     lexer.diagnostics = &document->diagnostics;
     lexer.tokens = &document->tokens;
-    lexer.hInclude = document->hInclude;
 
     M3C_LOOP {
         res = __M3C_ASM_lexNextToken(&lexer);
