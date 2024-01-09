@@ -5,6 +5,12 @@
 
 void const *M3C_EchoFn(void const *obj, void const *arg) { return obj; }
 
+void M3C_VEC_Init_impl(void **buf, m3c_size_t *len, m3c_size_t *cap) {
+    *buf = M3C_NULL;
+    *len = 0;
+    *cap = 0;
+}
+
 M3C_ERROR M3C_VEC_ReserveUnused_impl(
     void **buf, m3c_size_t const *len, m3c_size_t *cap, m3c_size_t elemSize, m3c_size_t n
 ) {

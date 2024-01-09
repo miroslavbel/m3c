@@ -13,8 +13,23 @@
  */
 #define M3C_VEC(TYPE)                                                                              \
     struct __tagM3C_VEC_##TYPE {                                                                   \
+        /**                                                                                        \
+         * \brief Length of the buffer.                                                            \
+         *                                                                                         \
+         * \note Can be `0`.                                                                       \
+         */                                                                                        \
         m3c_size_t len;                                                                            \
+        /**                                                                                        \
+         * \brief Capacity of the buffer.                                                          \
+         *                                                                                         \
+         * \warning Can be `0` iff `data` is `NULL`.                                               \
+         */                                                                                        \
         m3c_size_t cap;                                                                            \
+        /**                                                                                        \
+         * \brief Pointer to the buffer.                                                           \
+         *                                                                                         \
+         * \warning Can be `NULL` iff `cap` is equal to `0`.                                       \
+         */                                                                                        \
         TYPE *data;                                                                                \
     }
 
@@ -71,6 +86,17 @@ typedef void const *(M3C_KEY_FN)(void const *, void *);
  * \sa #M3C_ARR_BSEARCH_BY_KEY, #M3C_ARR_BSearch_impl
  */
 void const *M3C_EchoFn(void const *obj, void const *arg);
+
+/**
+ * \brief Inits the vector.
+ *
+ * \note Doesn't allocate the buffer.
+ *
+ * \param[out] buf pointer to the pointer to the buffer
+ * \param[out] len pointer to the buffer length
+ * \param[out] cap pointer to the buffer capacity
+ */
+void M3C_VEC_Init_impl(void **buf, m3c_size_t *len, m3c_size_t *cap);
 
 /**
  * \brief Inserts `elems` to the vector at index `index`.
@@ -444,6 +470,15 @@ M3C_ERROR M3C_ARR_BSearch_impl(
  */
 #define M3C_ARR_RSHIFT(TYPE, ARR, START_I, STEP)                                                   \
     M3C_ARR_RShift_impl((void *)(ARR)->data, (ARR)->len, sizeof(TYPE), (START_I), (STEP))
+
+/**
+ * \brief Inits the vector struct.
+ *
+ * \note Doesn't allocate the buffer.
+ *
+ * \param[out] VEC pointer to the vector struct
+ */
+#define M3C_VEC_INIT(VEC) M3C_VEC_Init_impl((void **)&(VEC)->data, &(VEC)->len, &(VEC)->cap)
 
 /**
  * \brief Copies elements within a vector.
