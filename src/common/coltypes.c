@@ -11,6 +11,14 @@ void M3C_VEC_Init_impl(void **buf, m3c_size_t *len, m3c_size_t *cap) {
     *cap = 0;
 }
 
+M3C_ERROR M3C_VEC_NewWithCapacity_impl(
+    void **buf, m3c_size_t *len, m3c_size_t *cap, m3c_size_t elemSize, m3c_size_t initCap
+) {
+    M3C_VEC_Init_impl(buf, len, cap);
+
+    return M3C_VEC_ReserveExact_impl(buf, cap, elemSize, initCap);
+}
+
 M3C_ERROR M3C_VEC_ReserveUnused_impl(
     void **buf, m3c_size_t const *len, m3c_size_t *cap, m3c_size_t elemSize, m3c_size_t n
 ) {
