@@ -1,8 +1,6 @@
 #include <m3c/common/coltypes.h>
 #include <m3c/common/macros.h>
 
-#include <m3c/rt/alloc.h>
-
 void const *M3C_EchoFn(void const *obj, void const *arg) { return obj; }
 
 void M3C_VEC_Init_impl(void **buf, m3c_size_t *len, m3c_size_t *cap) {
@@ -17,6 +15,14 @@ M3C_ERROR M3C_VEC_NewWithCapacity_impl(
     M3C_VEC_Init_impl(buf, len, cap);
 
     return M3C_VEC_ReserveExact_impl(buf, cap, elemSize, initCap);
+}
+
+void M3C_VEC_Clear_impl(void **buf, m3c_size_t *len, m3c_size_t *cap) {
+    M3C_VEC_Deinit_impl(*buf);
+
+    *buf = M3C_NULL;
+    *cap = 0;
+    *len = 0;
 }
 
 M3C_ERROR M3C_VEC_ReserveUnused_impl(

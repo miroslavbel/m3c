@@ -1,6 +1,7 @@
 #ifndef _M3C_INCGUARD_COLTYPES_H
 #define _M3C_INCGUARD_COLTYPES_H
 
+#include <m3c/rt/alloc.h>
 #include <m3c/rt/mem.h>
 
 #include <m3c/common/types.h>
@@ -135,6 +136,26 @@ M3C_ERROR M3C_VEC_NewWithCapacity_impl(
  */
 #define M3C_VEC_New_impl(BUF, LEN, CAP, ELEM_SIZE)                                                 \
     M3C_VEC_NewWithCapacity_impl((BUF), (LEN), (CAP), (ELEM_SIZE), M3C_VEC_DEFAULT_INITIAL_CAPACITY)
+
+/**
+ * \brief Deinits the vector, by freeing its underlying buffer.
+ *
+ * \param BUF pointer to the buffer
+ *
+ * \warning Doesn't reset the length and the capacity.
+ */
+#define M3C_VEC_Deinit_impl(BUF) m3c_free((BUF))
+
+/**
+ * \brief Clears the vector.
+ *
+ * \details Deallocates underlying buffer and resets the capacity and the length to zero.
+ *
+ * \param[in,out] buf pointer to the pointer to the buffer
+ * \param[out]    len pointer to the buffer length
+ * \param[out]    cap pointer to the buffer capacity
+ */
+void M3C_VEC_Clear_impl(void **buf, m3c_size_t *len, m3c_size_t *cap);
 
 /**
  * \brief Inserts `elems` to the vector at index `index`.
@@ -547,6 +568,24 @@ M3C_ERROR M3C_ARR_BSearch_impl(
  */
 #define M3C_VEC_NEW(TYPE, VEC)                                                                     \
     M3C_VEC_New_impl((void **)&(VEC)->data, &(VEC)->len, &(VEC)->cap, sizeof(TYPE))
+
+/**
+ * \brief Deinits the vector, by freeing its underlying buffer.
+ *
+ * \param[in] VEC pointer to the vector struct
+ *
+ * \warning Doesn't reset the length and the capacity.
+ */
+#define M3C_VEC_DEINIT(VEC) M3C_VEC_Deinit_impl((void *)(VEC)->data)
+
+/**
+ * \brief Clears the vector.
+ *
+ * \details Deallocates underlying buffer and resets the capacity and the length to zero.
+ *
+ * \param[in,out] VEC pointer to the vector struct
+ */
+#define M3C_VEC_CLEAR(VEC) M3C_VEC_Clear_impl((void **)&(VEC)->data, &(VEC)->len, &(VEC)->cap)
 
 /**
  * \brief Copies elements within a vector.
