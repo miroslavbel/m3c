@@ -1,10 +1,16 @@
 #ifndef _M3C_INCGUARD_COLTYPES_H
 #define _M3C_INCGUARD_COLTYPES_H
 
+#include <m3c/rt/alloc.h>
 #include <m3c/rt/mem.h>
 
 #include <m3c/common/types.h>
 #include <m3c/common/errors.h>
+
+/**
+ * \brief Default initial capacity for vector underlying buffer.
+ */
+#define M3C_VEC_DEFAULT_INITIAL_CAPACITY 16
 
 /**
  * \brief Macro for defining a vector structure with a given type.
@@ -13,8 +19,23 @@
  */
 #define M3C_VEC(TYPE)                                                                              \
     struct __tagM3C_VEC_##TYPE {                                                                   \
+        /**                                                                                        \
+         * \brief Length of the buffer.                                                            \
+         *                                                                                         \
+         * \note Can be `0`.                                                                       \
+         */                                                                                        \
         m3c_size_t len;                                                                            \
+        /**                                                                                        \
+         * \brief Capacity of the buffer.                                                          \
+         *                                                                                         \
+         * \note Can be `0`.                                                                       \
+         */                                                                                        \
         m3c_size_t cap;                                                                            \
+        /**                                                                                        \
+         * \brief Pointer to the buffer.                                                           \
+         *                                                                                         \
+         * \warning Can be `NULL` iff `cap` is equal to `0`.                                       \
+         */                                                                                        \
         TYPE *data;                                                                                \
     }
 
@@ -71,6 +92,70 @@ typedef void const *(M3C_KEY_FN)(void const *, void *);
  * \sa #M3C_ARR_BSEARCH_BY_KEY, #M3C_ARR_BSearch_impl
  */
 void const *M3C_EchoFn(void const *obj, void const *arg);
+
+/**
+ * \brief Inits the vector.
+ *
+ * \note Doesn't allocate the buffer.
+ *
+ * \param[out] buf pointer to the pointer to the buffer
+ * \param[out] len pointer to the buffer length
+ * \param[out] cap pointer to the buffer capacity
+ */
+void M3C_VEC_Init_impl(void **buf, m3c_size_t *len, m3c_size_t *cap);
+
+/**
+ * \brief Inits the vector and allocates the underlying buffer so that it can store exactly
+ * `initCap` elements.
+ *
+ * \param[out] buf      pointer to the pointer to the buffer
+ * \param[out] len      pointer to the buffer length
+ * \param[out] cap      pointer to the buffer capacity
+ * \param      elemSize size of the vector element in bytes
+ * \param      initCap  new capacity of the buffer, in number of elements
+ *
+ * \return
+ * + #M3C_ERROR_OK
+ * + #M3C_ERROR_OOM - if failed to alloc or `elemSize * initCap` will overflow
+ */
+M3C_ERROR M3C_VEC_NewWithCapacity_impl(
+    void **buf, m3c_size_t *len, m3c_size_t *cap, m3c_size_t elemSize, m3c_size_t initCap
+);
+
+/**
+ * \brief Inits the vector and allocates the underlying buffer.
+ *
+ * \param[out] BUF       pointer to the pointer to the buffer
+ * \param[out] LEN       pointer to the buffer length
+ * \param[out] CAP       pointer to the buffer capacity
+ * \param      ELEM_SIZE size of the vector element in bytes
+ *
+ * \return
+ * + #M3C_ERROR_OK
+ * + #M3C_ERROR_OOM - if failed to alloc
+ */
+#define M3C_VEC_New_impl(BUF, LEN, CAP, ELEM_SIZE)                                                 \
+    M3C_VEC_NewWithCapacity_impl((BUF), (LEN), (CAP), (ELEM_SIZE), M3C_VEC_DEFAULT_INITIAL_CAPACITY)
+
+/**
+ * \brief Deinits the vector, by freeing its underlying buffer.
+ *
+ * \param BUF pointer to the buffer
+ *
+ * \warning Doesn't reset the length and the capacity.
+ */
+#define M3C_VEC_Deinit_impl(BUF) m3c_free((BUF))
+
+/**
+ * \brief Clears the vector.
+ *
+ * \details Deallocates underlying buffer and resets the capacity and the length to zero.
+ *
+ * \param[in,out] buf pointer to the pointer to the buffer
+ * \param[out]    len pointer to the buffer length
+ * \param[out]    cap pointer to the buffer capacity
+ */
+void M3C_VEC_Clear_impl(void **buf, m3c_size_t *len, m3c_size_t *cap);
 
 /**
  * \brief Inserts `elems` to the vector at index `index`.
@@ -444,6 +529,63 @@ M3C_ERROR M3C_ARR_BSearch_impl(
  */
 #define M3C_ARR_RSHIFT(TYPE, ARR, START_I, STEP)                                                   \
     M3C_ARR_RShift_impl((void *)(ARR)->data, (ARR)->len, sizeof(TYPE), (START_I), (STEP))
+
+/**
+ * \brief Inits the vector struct.
+ *
+ * \note Doesn't allocate the buffer.
+ *
+ * \param[out] VEC pointer to the vector struct
+ */
+#define M3C_VEC_INIT(VEC) M3C_VEC_Init_impl((void **)&(VEC)->data, &(VEC)->len, &(VEC)->cap)
+
+/**
+ * \brief Inits the vector and allocates the underlying buffer so that it can store exactly
+ * `INIT_CAP` elements.
+ *
+ * \param      TYPE      type of vector element
+ * \param[out] VEC       pointer to the vector struct
+ * \param      INIT_CAP  initial capacity
+ *
+ * \return
+ * + #M3C_ERROR_OK
+ * + #M3C_ERROR_OOM - if failed to alloc
+ */
+#define M3C_VEC_NEW_WITH_CAP(TYPE, VEC, INIT_CAP)                                                  \
+    M3C_VEC_NewWithCapacity_impl(                                                                  \
+        (void **)&(VEC)->data, &(VEC)->len, &(VEC)->cap, sizeof(TYPE), (INIT_CAP)                  \
+    )
+
+/**
+ * \brief Inits the vector and allocates the underlying buffer.
+ *
+ * \param      TYPE      type of vector element
+ * \param[out] VEC       pointer to the vector struct
+ *
+ * \return
+ * + #M3C_ERROR_OK
+ * + #M3C_ERROR_OOM - if failed to alloc
+ */
+#define M3C_VEC_NEW(TYPE, VEC)                                                                     \
+    M3C_VEC_New_impl((void **)&(VEC)->data, &(VEC)->len, &(VEC)->cap, sizeof(TYPE))
+
+/**
+ * \brief Deinits the vector, by freeing its underlying buffer.
+ *
+ * \param[in] VEC pointer to the vector struct
+ *
+ * \warning Doesn't reset the length and the capacity.
+ */
+#define M3C_VEC_DEINIT(VEC) M3C_VEC_Deinit_impl((void *)(VEC)->data)
+
+/**
+ * \brief Clears the vector.
+ *
+ * \details Deallocates underlying buffer and resets the capacity and the length to zero.
+ *
+ * \param[in,out] VEC pointer to the vector struct
+ */
+#define M3C_VEC_CLEAR(VEC) M3C_VEC_Clear_impl((void **)&(VEC)->data, &(VEC)->len, &(VEC)->cap)
 
 /**
  * \brief Copies elements within a vector.
