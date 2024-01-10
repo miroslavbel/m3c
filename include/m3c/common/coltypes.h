@@ -138,13 +138,14 @@ M3C_ERROR M3C_VEC_NewWithCapacity_impl(
     M3C_VEC_NewWithCapacity_impl((BUF), (LEN), (CAP), (ELEM_SIZE), M3C_VEC_DEFAULT_INITIAL_CAPACITY)
 
 /**
- * \brief Deinits the vector, by freeing its underlying buffer.
+ * \brief Deinits the array by freeing its underlying buffer, assuming the buffer has been allocated
+ * in the heap.
  *
  * \param BUF pointer to the buffer
  *
  * \warning Doesn't reset the length and the capacity.
  */
-#define M3C_VEC_Deinit_impl(BUF) m3c_free((BUF))
+#define M3C_ARR_DeinitBoxed_impl(BUF) m3c_free((BUF))
 
 /**
  * \brief Clears the vector.
@@ -416,6 +417,16 @@ M3C_ERROR M3C_ARR_BSearch_impl(
 );
 
 /**
+ * \brief Deinits the array by freeing its underlying buffer, assuming the buffer has been allocated
+ * in the heap.
+ *
+ * \param[in] ARR pointer to the array struct
+ *
+ * \warning Doesn't reset the length.
+ */
+#define M3C_ARR_DEINIT_BOXED(ARR) M3C_ARR_DeinitBoxed_impl((void *)(ARR)->data)
+
+/**
  * \brief Copies elements from `SRC` array to non-overlapping `DST` array.
  *
  * \warning To use this macro safely, ensure that:
@@ -576,7 +587,7 @@ M3C_ERROR M3C_ARR_BSearch_impl(
  *
  * \warning Doesn't reset the length and the capacity.
  */
-#define M3C_VEC_DEINIT(VEC) M3C_VEC_Deinit_impl((void *)(VEC)->data)
+#define M3C_VEC_DEINIT(VEC) M3C_ARR_DeinitBoxed_impl((void *)(VEC)->data)
 
 /**
  * \brief Clears the vector.
