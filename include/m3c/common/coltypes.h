@@ -535,7 +535,7 @@ M3C_ERROR M3C_ARR_BSearch_impl(
  *
  * \note Doesn't allocate the buffer.
  *
- * \param[out] VEC pointer to the vector struct
+ * \param[in,out] VEC pointer to the vector struct
  */
 #define M3C_VEC_INIT(VEC) M3C_VEC_Init_impl((void **)&(VEC)->data, &(VEC)->len, &(VEC)->cap)
 
@@ -543,9 +543,9 @@ M3C_ERROR M3C_ARR_BSearch_impl(
  * \brief Inits the vector and allocates the underlying buffer so that it can store exactly
  * `INIT_CAP` elements.
  *
- * \param      TYPE      type of vector element
- * \param[out] VEC       pointer to the vector struct
- * \param      INIT_CAP  initial capacity
+ * \param         TYPE     type of vector element
+ * \param[in,out] VEC      pointer to the vector struct
+ * \param         INIT_CAP initial capacity
  *
  * \return
  * + #M3C_ERROR_OK
@@ -559,8 +559,8 @@ M3C_ERROR M3C_ARR_BSearch_impl(
 /**
  * \brief Inits the vector and allocates the underlying buffer.
  *
- * \param      TYPE      type of vector element
- * \param[out] VEC       pointer to the vector struct
+ * \param         TYPE type of vector element
+ * \param[in,out] VEC  pointer to the vector struct
  *
  * \return
  * + #M3C_ERROR_OK
