@@ -119,4 +119,18 @@ typedef struct __tagM3C_Diagnostics {
     m3c_u32 errors;
 } M3C_Diagnostics;
 
+/**
+ * \brief Inits #M3C_Diagnostics.
+ *
+ * \param[in,out] diagnostics diagnostics
+ */
+void __M3C_Diagnostics_Init(M3C_Diagnostics *diagnostics);
+
+/**
+ * \brief Deinits #M3C_Diagnostics.
+ *
+ * \param[in] diagnostics diagnostics
+ */
+void __M3C_Diagnostics_Deinit(M3C_Diagnostics const *diagnostics);
+
 #endif /* _M3C_INCGUARD_CORE_DIAGNOSTICS_H */
