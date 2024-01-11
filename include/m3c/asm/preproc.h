@@ -234,6 +234,23 @@ struct __tagM3C_ASM_PreProc {
 };
 
 /**
+ * \brief Inits the \ref M3C_ASM_Document "document" struct.
+ *
+ * \param[in,out] document document struct to init
+ * \param         buf      document buffer (source text). Can't be `NULL` even if the document is
+ * empty.
+ * \param         bufLen   length of the document buffer. Can be `0`
+ */
+void M3C_ASM_Document_Init(M3C_ASM_Document *document, m3c_u8 const *buf, m3c_size_t bufLen);
+
+/**
+ * \brief Deinits the \ref M3C_ASM_Document "document" struct.
+ *
+ * \param[in] document document struct to deinit
+ */
+void M3C_ASM_Document_Deinit(M3C_ASM_Document const *document);
+
+/**
  * \brief Performs \ref term_phase_ls "Line Splitting Phase".
  *
  * \details Splits the document into lines (using \ref term_eol "EOL" sequences), filling the
