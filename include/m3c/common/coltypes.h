@@ -138,13 +138,14 @@ M3C_ERROR M3C_VEC_NewWithCapacity_impl(
     M3C_VEC_NewWithCapacity_impl((BUF), (LEN), (CAP), (ELEM_SIZE), M3C_VEC_DEFAULT_INITIAL_CAPACITY)
 
 /**
- * \brief Deinits the vector, by freeing its underlying buffer.
+ * \brief Deinits the array by freeing its underlying buffer, assuming the buffer has been allocated
+ * in the heap.
  *
  * \param BUF pointer to the buffer
  *
  * \warning Doesn't reset the length and the capacity.
  */
-#define M3C_VEC_Deinit_impl(BUF) m3c_free((BUF))
+#define M3C_ARR_DeinitBoxed_impl(BUF) m3c_free((BUF))
 
 /**
  * \brief Clears the vector.
@@ -416,6 +417,26 @@ M3C_ERROR M3C_ARR_BSearch_impl(
 );
 
 /**
+ * \brief Deinits the array by freeing its underlying buffer, assuming the buffer has been allocated
+ * in the heap.
+ *
+ * \param[in] ARR pointer to the array struct
+ *
+ * \warning Doesn't reset the length.
+ */
+#define M3C_ARR_DEINIT_BOXED(ARR) M3C_ARR_DeinitBoxed_impl((void *)(ARR)->data)
+
+/**
+ * \brief For each macro.
+ *
+ * \param[in]     ARR  pointer to the array struct
+ * \param[in,out] I    writes the element index to this pointer
+ * \param[in]     ELEM writes a pointer to the element itself to this pointer
+ */
+#define M3C_ARR_FOREACH(ARR, I, ELEM)                                                              \
+    for (*(I) = 0; *(ELEM) = &(ARR)->data[*(I)], *(I) < (ARR)->len; ++*(I))
+
+/**
  * \brief Copies elements from `SRC` array to non-overlapping `DST` array.
  *
  * \warning To use this macro safely, ensure that:
@@ -535,7 +556,7 @@ M3C_ERROR M3C_ARR_BSearch_impl(
  *
  * \note Doesn't allocate the buffer.
  *
- * \param[out] VEC pointer to the vector struct
+ * \param[in,out] VEC pointer to the vector struct
  */
 #define M3C_VEC_INIT(VEC) M3C_VEC_Init_impl((void **)&(VEC)->data, &(VEC)->len, &(VEC)->cap)
 
@@ -543,9 +564,9 @@ M3C_ERROR M3C_ARR_BSearch_impl(
  * \brief Inits the vector and allocates the underlying buffer so that it can store exactly
  * `INIT_CAP` elements.
  *
- * \param      TYPE      type of vector element
- * \param[out] VEC       pointer to the vector struct
- * \param      INIT_CAP  initial capacity
+ * \param         TYPE     type of vector element
+ * \param[in,out] VEC      pointer to the vector struct
+ * \param         INIT_CAP initial capacity
  *
  * \return
  * + #M3C_ERROR_OK
@@ -559,8 +580,8 @@ M3C_ERROR M3C_ARR_BSearch_impl(
 /**
  * \brief Inits the vector and allocates the underlying buffer.
  *
- * \param      TYPE      type of vector element
- * \param[out] VEC       pointer to the vector struct
+ * \param         TYPE type of vector element
+ * \param[in,out] VEC  pointer to the vector struct
  *
  * \return
  * + #M3C_ERROR_OK
@@ -576,7 +597,7 @@ M3C_ERROR M3C_ARR_BSearch_impl(
  *
  * \warning Doesn't reset the length and the capacity.
  */
-#define M3C_VEC_DEINIT(VEC) M3C_VEC_Deinit_impl((void *)(VEC)->data)
+#define M3C_VEC_DEINIT(VEC) M3C_ARR_DeinitBoxed_impl((void *)(VEC)->data)
 
 /**
  * \brief Clears the vector.
@@ -586,6 +607,15 @@ M3C_ERROR M3C_ARR_BSearch_impl(
  * \param[in,out] VEC pointer to the vector struct
  */
 #define M3C_VEC_CLEAR(VEC) M3C_VEC_Clear_impl((void **)&(VEC)->data, &(VEC)->len, &(VEC)->cap)
+
+/**
+ * \brief For each macro.
+ *
+ * \param[in]     VEC  pointer to the vector struct
+ * \param[in,out] I    writes the element index to this pointer
+ * \param[in]     ELEM writes a pointer to the element itself to this pointer
+ */
+#define M3C_VEC_FOREACH(VEC, I, ELEM) M3C_ARR_FOREACH(VEC, I, ELEM)
 
 /**
  * \brief Copies elements within a vector.

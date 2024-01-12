@@ -3,7 +3,55 @@
 #include <m3c/common/coltypes.h>
 #include <m3c/common/utf8.h>
 #include <m3c/common/macros.h>
+
 #include <m3c/rt/alloc.h>
+
+#include <m3c/asm/lex.h>
+
+void M3C_ASM_Document_Init(M3C_ASM_Document *document, m3c_u8 const *buf, m3c_size_t bufLen) {
+    M3C_VEC_INIT(&document->tokens);
+    __M3C_Diagnostics_Init(&document->diagnostics);
+
+    document->fragments.data = M3C_NULL;
+    document->fragments.len = 0;
+
+    document->bFirst = buf;
+    document->bLast = bufLen > 0 ? buf + bufLen - 1 : M3C_NULL;
+}
+
+void M3C_ASM_Document_Deinit(M3C_ASM_Document const *document) {
+    M3C_VEC_DEINIT(&document->tokens);
+    __M3C_Diagnostics_Deinit(&document->diagnostics);
+
+    M3C_ARR_DEINIT_BOXED(&document->fragments);
+
+    /* NOTE: no free for document buf (`::bFirst`). We don't own it. */
+}
+
+M3C_ERROR M3C_ASM_PreProc_New(M3C_ASM_PreProc *preProc) {
+
+    /* NOTE: we need at least one document as the entry document */
+    if (M3C_VEC_NEW_WITH_CAP(M3C_ASM_Document, &preProc->documents, 2) != M3C_ERROR_OK)
+        return M3C_ERROR_OOM;
+
+    M3C_VEC_INIT(&preProc->stringPool);
+
+    __M3C_ASM_PPSeq_Init(&preProc->seq);
+
+    return M3C_ERROR_OK;
+}
+
+void M3C_ASM_PreProc_Deinit(M3C_ASM_PreProc const *preProc) {
+    m3c_size_t i;
+    M3C_ASM_Document const *document;
+
+    M3C_VEC_FOREACH(&preProc->documents, &i, &document) { M3C_ASM_Document_Deinit(document); }
+    M3C_VEC_DEINIT(&preProc->documents);
+
+    M3C_VEC_DEINIT(&preProc->stringPool);
+
+    __M3C_ASM_PPSeq_Deinit(&preProc->seq);
+}
 
 M3C_ERROR __M3C_ASM_Document_SplitLines(M3C_ASM_Document *document, m3c_bool usePreproc) {
     typedef M3C_VEC(M3C_ASM_Fragment) M3C_ASM_Fragments;

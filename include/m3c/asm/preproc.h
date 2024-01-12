@@ -4,8 +4,11 @@
 #include <m3c/common/types.h>
 #include <m3c/common/coltypes.h>
 #include <m3c/common/errors.h>
-#include <m3c/asm/types.h>
+
 #include <m3c/core/diagnostics.h>
+
+#include <m3c/asm/types.h>
+#include <m3c/asm/ppseq.h>
 
 /** \file
  * Preprocessor routines.
@@ -228,10 +231,52 @@ struct __tagM3C_ASM_PreProc {
     /**
      * \brief String pool.
      *
-     * Used to store token lexemes.
+     * \details Used to store token lexemes.
      */
     M3C_ASM_StringPool stringPool;
+    /**
+     * \brief Preprocessor sequence.
+     *
+     * \details Sequence of tokens (and diagnostics) on which the preprocessor works (e.g., executes
+     * directives and expands macros).
+     */
+    M3C_ASM_PPSeq seq;
 };
+
+/**
+ * \brief Inits the \ref M3C_ASM_Document "document" struct.
+ *
+ * \param[in,out] document document struct to init
+ * \param         buf      document buffer (source text). Can't be `NULL` even if the document is
+ * empty.
+ * \param         bufLen   length of the document buffer. Can be `0`
+ */
+void M3C_ASM_Document_Init(M3C_ASM_Document *document, m3c_u8 const *buf, m3c_size_t bufLen);
+
+/**
+ * \brief Deinits the \ref M3C_ASM_Document "document" struct.
+ *
+ * \param[in] document document struct to deinit
+ */
+void M3C_ASM_Document_Deinit(M3C_ASM_Document const *document);
+
+/**
+ * \brief Prepares \ref M3C_ASM_PreProc "PreProc" struct for work.
+ *
+ * \param[in,out] preProc preprocessor
+ *
+ * \return
+ * + #M3C_ERROR_OK
+ * + #M3C_ERROR_OOM - if there isn't enough memory
+ */
+M3C_ERROR M3C_ASM_PreProc_New(M3C_ASM_PreProc *preProc);
+
+/**
+ * \brief Deinits the preprocessor.
+ *
+ * \param[in] preProc preprocessor
+ */
+void M3C_ASM_PreProc_Deinit(M3C_ASM_PreProc const *preProc);
 
 /**
  * \brief Performs \ref term_phase_ls "Line Splitting Phase".

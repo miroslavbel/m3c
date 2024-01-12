@@ -25,6 +25,8 @@ typedef m3c_u32 M3C_ASM_hToken;
 
 typedef struct __tagM3C_ASM_Document M3C_ASM_Document;
 
+typedef m3c_size_t M3C_ASM_hDocument;
+
 typedef struct __tagM3C_ASM_PreProc M3C_ASM_PreProc;
 
 /***************************************************************************************************
