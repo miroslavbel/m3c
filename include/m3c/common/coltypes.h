@@ -427,6 +427,16 @@ M3C_ERROR M3C_ARR_BSearch_impl(
 #define M3C_ARR_DEINIT_BOXED(ARR) M3C_ARR_DeinitBoxed_impl((void *)(ARR)->data)
 
 /**
+ * \brief For each macro.
+ *
+ * \param[in]     ARR  pointer to the array struct
+ * \param[in,out] I    writes the element index to this pointer
+ * \param[in]     ELEM writes a pointer to the element itself to this pointer
+ */
+#define M3C_ARR_FOREACH(ARR, I, ELEM)                                                              \
+    for (*(I) = 0; *(ELEM) = &(ARR)->data[*(I)], *(I) < (ARR)->len; ++*(I))
+
+/**
  * \brief Copies elements from `SRC` array to non-overlapping `DST` array.
  *
  * \warning To use this macro safely, ensure that:
@@ -597,6 +607,15 @@ M3C_ERROR M3C_ARR_BSearch_impl(
  * \param[in,out] VEC pointer to the vector struct
  */
 #define M3C_VEC_CLEAR(VEC) M3C_VEC_Clear_impl((void **)&(VEC)->data, &(VEC)->len, &(VEC)->cap)
+
+/**
+ * \brief For each macro.
+ *
+ * \param[in]     VEC  pointer to the vector struct
+ * \param[in,out] I    writes the element index to this pointer
+ * \param[in]     ELEM writes a pointer to the element itself to this pointer
+ */
+#define M3C_VEC_FOREACH(VEC, I, ELEM) M3C_ARR_FOREACH(VEC, I, ELEM)
 
 /**
  * \brief Copies elements within a vector.
