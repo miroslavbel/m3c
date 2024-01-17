@@ -18,7 +18,7 @@ M3C_ERROR M3C_VEC_NewWithCapacity_impl(
 }
 
 void M3C_VEC_Clear_impl(void **buf, m3c_size_t *len, m3c_size_t *cap) {
-    M3C_VEC_Deinit_impl(*buf);
+    M3C_ARR_DeinitBoxed_impl(*buf);
 
     *buf = M3C_NULL;
     *cap = 0;
