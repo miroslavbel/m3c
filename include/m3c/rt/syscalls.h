@@ -34,7 +34,7 @@ long M3C_SYSV_ABI m3c_syscall3(long sysno, long arg1, long arg2, long arg3);
  *
  * \return syscall result
  */
-#define m3c_syscall1(sysno, arg1) m3c_syscall3((sysno), (arg), 0, 0)
+#define m3c_syscall1(sysno, arg) m3c_syscall3((sysno), (arg), 0, 0)
 
 /**
  * \brief Performs a syscall with no arguments.
