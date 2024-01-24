@@ -10,6 +10,12 @@
  * <a href="https://sourceforge.net/projects/predef/">Pre-defined Compiler Macros</a> project.
  */
 
+#ifdef __clang__
+#    define M3C_CLANG 1
+#elif defined(__GNUC__)
+#    define M3C_GNUC 1
+#endif
+
 #if defined(__linux__) || defined(__linux) || defined(linux)
 #    define M3C_KERNEL_LINUX 1
 #endif
