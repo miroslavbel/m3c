@@ -19,6 +19,12 @@
 
 #    endif /* M3C_GNUC || M3C_CLANG */
 
+#else /* M3C_FEATURE_USE_COMPILER_BUILTIN_FUNCTIONS */
+
+void *m3c_memcpy(void *m3c_restrict dest, const void *m3c_restrict src, size_t count);
+
+#    define memcpy(dest, src, count) m3c_memcpy((dest), (src), (count))
+
 #endif /* M3C_FEATURE_USE_COMPILER_BUILTIN_FUNCTIONS */
 
 /**
