@@ -10,3 +10,34 @@ void *m3c_memfill(
     }
     return dest;
 }
+
+void *m3c_memcpy(void *m3c_restrict dest, const void *m3c_restrict src, size_t count) {
+    /* TODO: this is a VERY inefficient implementation! */
+    unsigned char *_dest = (unsigned char *)dest;
+    unsigned char const *_src = (unsigned char const *)src;
+
+    while (count > 0) {
+        *_dest = *_src;
+
+        ++_dest;
+        ++_src;
+        --count;
+    }
+
+    return dest;
+}
+
+void *m3c_memset(void *dest, int ch, m3c_size_t count) {
+    /* TODO: this is a VERY inefficient implementation! */
+
+    unsigned char *_dest = dest;
+
+    while (count > 0) {
+        *_dest = (unsigned char)ch;
+
+        --count;
+        ++_dest;
+    }
+
+    return dest;
+}

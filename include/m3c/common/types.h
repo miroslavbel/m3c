@@ -145,6 +145,13 @@ typedef int m3c_bool;
 #    endif
 #endif
 
+#ifndef m3c_max_align_t
+#    if __STDC_VERSION__ >= 201112L && !defined(FORBIT_USE_OF_STDTYPES)
+#        include <stddef.h>
+#        define m3c_max_align_t max_align_t
+#    endif
+#endif
+
 #ifndef M3C_NULL
 #    ifndef FORBIT_USE_OF_STDTYPES
 #        include <stddef.h>
