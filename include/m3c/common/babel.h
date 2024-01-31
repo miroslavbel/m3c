@@ -2,6 +2,7 @@
 #define _M3C_INCGUARD_BABEL_H
 
 #include <m3c/common/env.h>
+#include <m3c/common/types.h>
 
 #if __STDC_VERSION__ >= 202300L
 #    define m3c_alignof(TYPE) alignof(TYPE)
@@ -9,6 +10,12 @@
 #    define m3c_alignof(TYPE) _Alignof(TYPE)
 #elif defined(M3C_GNUC) || defined(M3C_CLANG)
 #    define m3c_alignof(TYPE) __alignof__(TYPE)
+#endif
+
+#ifndef M3C_FUNDAMENTAL_ALIGN
+#    if defined(m3c_alignof) && defined(m3c_max_align_t)
+#        define M3C_FUNDAMENTAL_ALIGN m3c_alignof(m3c_max_align_t)
+#    endif
 #endif
 
 #if __STDC_VERSION__ >= 199901L
