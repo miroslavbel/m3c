@@ -26,3 +26,18 @@ void *m3c_memcpy(void *m3c_restrict dest, const void *m3c_restrict src, size_t c
 
     return dest;
 }
+
+void *m3c_memset(void *dest, int ch, m3c_size_t count) {
+    /* TODO: this is a VERY inefficient implementation! */
+
+    unsigned char *_dest = dest;
+
+    while (count > 0) {
+        *_dest = (unsigned char)ch;
+
+        --count;
+        ++_dest;
+    }
+
+    return dest;
+}

@@ -14,8 +14,9 @@
  * + https://clang.llvm.org/docs/LanguageExtensions.html#builtin-functions
  */
 
-#        define m3c_memcpy(dest, src, count) __builtin_memcpy(dest, src, count)
-#        define m3c_memmove(dest, src, count) __builtin_memmove(dest, src, count)
+#        define m3c_memcpy(dest, src, count) __builtin_memcpy((dest), (src), (count))
+#        define m3c_memmove(dest, src, count) __builtin_memmove((dest), (src), (count))
+#        define m3c_memset(dest, ch, count) __builtin_memset((dest), (ch), (count))
 
 #    endif /* M3C_GNUC || M3C_CLANG */
 
@@ -23,7 +24,10 @@
 
 void *m3c_memcpy(void *m3c_restrict dest, const void *m3c_restrict src, size_t count);
 
+void *m3c_memset(void *dest, int ch, m3c_size_t count);
+
 #    define memcpy(dest, src, count) m3c_memcpy((dest), (src), (count))
+#    define memset(dest, ch, count) m3c_memset((dest), (ch), (count))
 
 #endif /* M3C_FEATURE_USE_COMPILER_BUILTIN_FUNCTIONS */
 
