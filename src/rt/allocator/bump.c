@@ -45,11 +45,16 @@ void *M3C_BumpAllocator_AllocAligned(M3C_BumpAllocator *ba, m3c_size_t alignment
     /* GUARANTEED: (by caller) `alignment > 0` */
     remainder = (m3c_size_t)ba->ptr % alignment;
 
-    coremainder = alignment - remainder;
+    if (remainder == 0)
+        alignedPtr = ba->ptr;
+    else {
+        coremainder = alignment - remainder;
 
-    if ((char *)ba->last - (char *)ba->ptr <= coremainder)
-        return M3C_NULL;
-    alignedPtr = (char *)ba->ptr + coremainder;
+        if ((char *)ba->last - (char *)ba->ptr <= coremainder)
+            return M3C_NULL;
+
+        alignedPtr = (char *)ba->ptr + coremainder;
+    }
 
     return __M3C_BumpAllocator_TryAllocFrom(ba, alignedPtr, size);
 }
